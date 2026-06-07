@@ -566,6 +566,8 @@ function getLinkThumbnailHTML(url) {
       } else if (urlObj.hostname.includes('youtu.be')) {
         ytId = urlObj.pathname.split('/')[1];
       }
+    }
+    
     if (isYouTube && ytId) {
       // 1. YouTube Video: Direct HD fetch
       return `
