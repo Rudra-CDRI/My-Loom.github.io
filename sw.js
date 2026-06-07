@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-loom-cache-v1';
+const CACHE_NAME = 'my-loom-cache-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

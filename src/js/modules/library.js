@@ -584,11 +584,11 @@ function getLinkThumbnailHTML(url) {
         </div>
       `;
     } else {
-      // 3. Generic Links: Clearbit Logo -> Icon.Horse Logo -> Google Favicon
-      const domain = urlObj.hostname;
+      // 3. Generic Links: Full website screenshot via WordPress mshots
+      const encodedUrl = encodeURIComponent(url);
       return `
-        <div class="link-thumbnail-container" style="background-color: #111;">
-          <img class="link-logo-img" src="https://logo.clearbit.com/${domain}" alt="Logo" onerror="this.onerror=null; this.src='https://icon.horse/icon/${domain}';">
+        <div class="link-thumbnail-container">
+          <img class="link-thumbnail-img" src="https://s.wordpress.com/mshots/v1/${encodedUrl}?w=600" alt="Site Preview">
         </div>
       `;
     }
