@@ -11,6 +11,7 @@ let containerRef = null;
 let activeTagFilter = 'ALL';
 let editingBookmarkId = null;
 let currentViewMode = localStorage.getItem('myloom_library_view') || 'grid';
+let collapsedCategories = JSON.parse(localStorage.getItem('myloom_collapsed_cats') || '{}');
 
 export const LibraryView = {
   render(container) {
@@ -308,17 +309,48 @@ function bindEvents() {
     const editCatBtn = e.target.closest('.btn-edit-cat');
     if (editCatBtn) {
       const oldCat = editCatBtn.getAttribute('data-cat');
-      showPrompt(`Rename category "${oldCat}" to:`, oldCat, async (newCat) => {
-        const trimmed = newCat.trim();
-        if (trimmed && trimmed.toLowerCase() !== oldCat.toLowerCase()) {
-          const result = await updateBookmarkCategory(oldCat, trimmed);
-          if (result) {
-            writeTerminal(`Renamed link category from "${oldCat}" to "${trimmed}"`, 'LINK');
+      showPrompt(`Rename category "${oldCat}" to:`, oldCat, async (newName) => {
+        if (newName && newName.trim() !== '' && newName.trim() !== oldCat) {
+          const success = await updateBookmarkCategory(oldCat, newName.trim());
+          if (success) {
+            if (collapsedCategories.hasOwnProperty(oldCat)) {
+              collapsedCategories[newName.trim()] = collapsedCategories[oldCat];
+              delete collapsedCategories[oldCat];
+              localStorage.setItem('myloom_collapsed_cats', JSON.stringify(collapsedCategories));
+            }
+            writeTerminal(`Renamed category "${oldCat}" to "${newName.trim()}"`, 'LINK');
+            renderBookmarksList(
+              document.getElementById('library-search')?.value || '', 
+              activeTagFilter
+            );
           } else {
-            showDialog('Category already exists or invalid name.');
+            showDialog('Category name exists or invalid.');
           }
         }
       });
+      return;
+    }
+
+    // Toggle Category
+    const toggleHeader = e.target.closest('.category-header');
+    if (toggleHeader && !e.target.closest('.btn-icon')) {
+      const catName = toggleHeader.getAttribute('data-toggle-cat');
+      const safeId = catName.replace(/\W/g, '');
+      const content = document.getElementById(`cat-content-${safeId}`);
+      const icon = toggleHeader.querySelector('.cat-toggle-icon');
+      
+      if (content && icon) {
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          icon.style.transform = 'rotate(0deg)';
+          collapsedCategories[catName] = false;
+        } else {
+          content.style.display = 'none';
+          icon.style.transform = 'rotate(-90deg)';
+          collapsedCategories[catName] = true;
+        }
+        localStorage.setItem('myloom_collapsed_cats', JSON.stringify(collapsedCategories));
+      }
       return;
     }
 
@@ -430,17 +462,23 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
 
   let html = '';
   for (const [category, catBookmarks] of Object.entries(categoriesMap)) {
+    const isCollapsed = collapsedCategories[category] || false;
+    const safeCatId = category.replace(/\W/g, '');
     html += `
       <div class="category-section" style="margin-bottom: 2.5rem;">
-        <h2 class="category-header" style="font-size: 1.1rem; font-weight: 700; color: var(--accent); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.25rem; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
-          <span>${escapeHTML(category)}</span>
-          <div style="display: flex; gap: 0.5rem;">
+        <h2 class="category-header" data-toggle-cat="${escapeHTML(category)}" style="cursor: pointer; user-select: none; font-size: 1.1rem; font-weight: 700; color: var(--accent); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.25rem; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="cat-toggle-icon" style="transition: transform 0.2s; transform: ${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; display: inline-block;">▼</span>
+            <span>${escapeHTML(category)}</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation()">
             <button class="btn btn-icon btn-edit-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Rename Category">✎</button>
             <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">🗑️</button>
           </div>
         </h2>
-        <div class="cards-grid ${currentViewMode !== 'grid' ? 'view-mode-' + currentViewMode : ''}" style="margin-top: 0;">
-          ${catBookmarks.length === 0 ? '<div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">No links in this category.</div>' : ''}
+        <div class="category-content" id="cat-content-${safeCatId}" style="display: ${isCollapsed ? 'none' : 'block'};">
+          <div class="cards-grid ${currentViewMode !== 'grid' ? 'view-mode-' + currentViewMode : ''}" style="margin-top: 0;">
+            ${catBookmarks.length === 0 ? '<div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">No links in this category.</div>' : ''}
           ${catBookmarks.map(b => {
             let domain = 'unknown';
             try {
@@ -465,7 +503,7 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
                 <div class="card-body" style="font-size: 0.8rem; display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
                   <div style="color: var(--text-muted); margin-bottom: 0.5rem;">Source: ${escapeHTML(domain)}</div>
                   ${b.lastAccessed ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem;">${formatRelativeTime(b.lastAccessed)}</div>` : ''}
-                  <a href="${escapeHTML(b.url)}" target="_blank" class="btn btn-primary btn-visit-library" data-id="${b.id}" style="margin-top: 0.25rem; width: 100%; text-decoration: none;">
+                  <a href="${escapeHTML(b.url)}" target="_blank" class="btn btn-primary btn-visit-library" data-id="${b.id}" style="margin-top: 0.25rem; text-decoration: none;">
                     Visit Resource
                   </a>
                 </div>
@@ -475,6 +513,7 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
               </div>
             `;
           }).join('')}
+          </div>
         </div>
       </div>
     `;

@@ -1276,6 +1276,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: none; /* Hide tags in minimal mode for absolute maximum density */
 }
 
+/* Force tiny buttons in minimal view to avoid mobile 44px touch-target inflation */
+.cards-grid.view-mode-minimal .btn {
+  min-height: 24px !important;
+}
+.cards-grid.view-mode-minimal .btn-icon {
+  width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 !important;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .cards-grid.view-mode-minimal .card {
+    flex-wrap: wrap;
+    padding: 0.4rem 0.5rem;
+  }
+  .cards-grid.view-mode-minimal .card-header {
+    flex: 1 1 100%;
+  }
+  .cards-grid.view-mode-minimal .card-body {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+  }
+}
+
 
 .card-header {
   display: flex;
