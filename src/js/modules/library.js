@@ -584,11 +584,11 @@ function getLinkThumbnailHTML(url) {
         </div>
       `;
     } else {
-      // 3. Generic Links: Extract site's OG image via Microlink, fallback to screenshot
-      const encodedUrl = encodeURIComponent(url);
+      // 3. Generic Links: High-res site logo via Google faviconV2
+      const domain = urlObj.hostname;
       return `
-        <div class="link-thumbnail-container">
-          <img class="link-thumbnail-img" src="https://api.microlink.io/?url=${encodedUrl}&embed=image.url" alt="Thumbnail" onerror="this.onerror=null; this.src='https://s.wordpress.com/mshots/v1/${encodedUrl}?w=600';">
+        <div class="link-thumbnail-container link-logo-bg">
+          <img class="link-logo-img" src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(url)}&size=128" alt="${domain}">
         </div>
       `;
     }
