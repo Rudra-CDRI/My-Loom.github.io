@@ -500,14 +500,14 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
                     <button class="btn btn-icon btn-delete-bookmark" data-id="${b.id}" style="color: var(--danger); border-color: rgba(239,68,68,0.2)" title="Purge Link">&times;</button>
                   </div>
                 </div>
-                <div class="card-body" style="font-size: 0.8rem; display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+                <div class="card-body">
                   <div style="color: var(--text-muted); margin-bottom: 0.5rem;">Source: ${escapeHTML(domain)}</div>
                   ${b.lastAccessed ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem;">${formatRelativeTime(b.lastAccessed)}</div>` : ''}
                   <a href="${escapeHTML(b.url)}" target="_blank" class="btn btn-primary btn-visit-library" data-id="${b.id}" style="margin-top: 0.25rem; text-decoration: none;">
                     Visit Resource
                   </a>
                 </div>
-                <div class="card-footer" style="margin-top: 1rem;">
+                <div class="card-footer">
                   ${b.tags.map(t => `<span class="tag">${escapeHTML(t)}</span>`).join(' ')}
                 </div>
               </div>

@@ -602,11 +602,11 @@ function renderVaultList(searchQuery = '', filterTag = 'ALL') {
               <button class="btn btn-icon btn-delete-file" data-id="${doc.id}" style="color: var(--danger); border-color: rgba(239,68,68,0.2)" title="Purge File">&times;</button>
             </div>
           </div>
-          <div class="card-body" style="font-size: 0.8rem; display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+          <div class="card-body">
             <div style="color: var(--text-muted); margin-bottom: 0.5rem;">Size: ${sizeString}</div>
             <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Ingested: ${dateString}</div>
           </div>
-          <div class="card-footer" style="margin-top: 1rem;">
+          <div class="card-footer">
             ${doc.tags.map(t => `<span class="tag">${escapeHTML(t)}</span>`).join(' ')}
           </div>
         </div>
