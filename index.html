@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY LOOM // CONTROL CENTER</title>
+  <meta name="description" content="My Loom - A high-fidelity industrial technical command center style personal productivity workspace.">
+  
+  <!-- Typography: Space Grotesk for fluid high-legibility UI, JetBrains Mono for monospace dates/tags/terminal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/jpeg" href="favicon.jpg">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="src/css/style.css">
+</head>
+<body class="command-center">
+  <!-- Interactive HTML5 Grid background canvas -->
+  <canvas id="grid-canvas"></canvas>
+
+  <!-- Custom SVG Cursor Elements (Desktop only) -->
+  <div class="cursor-dot" id="cursor-dot"></div>
+  <div class="cursor-ring" id="cursor-ring"></div>
+  
+  <!-- Subtle CRT Scanlines -->
+  <div class="scanlines"></div>
+  
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="logo-container">
+          <img src="src/img/logo.jpg" alt="Logo" class="logo-img" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover;">
+          <span class="logo-text">MY LOOM</span>
+        </div>
+      </div>
+      
+      <nav class="nav-menu">
+        <a href="#/dashboard" class="nav-link active" id="nav-dashboard">
+          <span class="nav-indicator"></span>
+          <span class="nav-code">[01]</span>
+          <span class="nav-label">DASHBOARD</span>
+        </a>
+        <a href="#/tasks" class="nav-link" id="nav-tasks">
+          <span class="nav-indicator"></span>
+          <span class="nav-code">[02]</span>
+          <span class="nav-label">TASK THREAD</span>
+        </a>
+        <a href="#/vault" class="nav-link" id="nav-vault">
+          <span class="nav-indicator"></span>
+          <span class="nav-code">[03]</span>
+          <span class="nav-label">DOCUMENT VAULT</span>
+        </a>
+        <a href="#/library" class="nav-link" id="nav-library">
+          <span class="nav-indicator"></span>
+          <span class="nav-code">[04]</span>
+          <span class="nav-label">LINK LIBRARY</span>
+        </a>
+        <a href="#/internships" class="nav-link" id="nav-internships">
+          <span class="nav-indicator"></span>
+          <span class="nav-code">[05]</span>
+          <span class="nav-label">INTERNSHIP TRACKER</span>
+        </a>
+      </nav>
+      
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="main-content">
+      <!-- Fixed Glassmorphic Top Navbar -->
+      <header class="top-navbar">
+        <!-- Hamburger Menu toggle (Mobile only) -->
+        <button class="menu-toggle-btn" id="menu-toggle" title="Open Menu">☰</button>
+        
+        <!-- Mobile logo text (Mobile only) -->
+        <span class="mobile-logo">
+          <img src="src/img/logo.jpg" alt="Logo" style="width: 24px; height: 24px; border-radius: 4px; object-fit: cover; vertical-align: middle; margin-right: 6px;">MY LOOM
+        </span>
+        
+        <!-- Undo/Redo Buttons and Theme Toggler -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="theme-toggle-btn" id="btn-undo" title="Undo Last Change (Ctrl+Z)" disabled style="cursor: pointer;">
+            <span>↶</span>
+          </button>
+          <button class="theme-toggle-btn" id="btn-redo" title="Redo Reverted Change (Ctrl+Y)" disabled style="cursor: pointer;">
+            <span>↷</span>
+          </button>
+          <button class="theme-toggle-btn" id="theme-toggle" title="Switch Light/Dark OS" style="cursor: pointer;">
+            <span id="theme-icon">🔆</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container (with scroll reveal wrappers) -->
+      <div id="app-container" class="view-container reveal">
+        <!-- Views will load here dynamically via JS router -->
+      </div>
+    </main>
+  </div>
+
+
+
+  <!-- Quick Add Event Modal Overlay (Shared globally) -->
+  <div class="overlay" id="quick-add-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title monospace">[Quick Add Event]</h3>
+        <button class="modal-close" id="quick-add-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="quick-add-form">
+          <div class="form-group">
+            <label class="form-label" for="quick-add-type">Event Type</label>
+            <select id="quick-add-type" class="form-control">
+              <option value="task">General Task</option>
+              <option value="internship">Internship Milestone</option>
+            </select>
+          </div>
+          
+          <!-- Task Specific Fields -->
+          <div id="quick-add-task-fields">
+            <div class="form-group">
+              <label class="form-label" for="quick-task-title">Task Title</label>
+              <input type="text" id="quick-task-title" class="form-control" placeholder="Describe the task...">
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div>
+                <label class="form-label" for="quick-task-category">Category</label>
+                <select id="quick-task-category" class="form-control">
+                  <!-- Categories loaded dynamically -->
+                </select>
+              </div>
+              <div>
+                <label class="form-label" for="quick-task-priority">Priority</label>
+                <select id="quick-task-priority" class="form-control">
+                  <option value="NONE">NONE</option>
+                  <option value="LOW">LOW</option>
+                  <option value="MED">MED</option>
+                  <option value="HIGH">HIGH</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Internship Specific Fields -->
+          <div id="quick-add-internship-fields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="quick-intern-company">Company Name</label>
+              <input type="text" id="quick-intern-company" class="form-control" placeholder="e.g. Google">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="quick-intern-role">Role / Position</label>
+              <input type="text" id="quick-intern-role" class="form-control" placeholder="e.g. Software Engineering Intern">
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div>
+                <label class="form-label" for="quick-intern-start-date">Start Date</label>
+                <input type="date" id="quick-intern-start-date" class="form-control">
+              </div>
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="form-label" for="quick-intern-deadline">Deadline</label>
+                  <label class="select-none" style="font-size: 0.7rem; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 0.15rem; margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="quick-intern-deadline-na" style="cursor: pointer;">
+                    Rolling
+                  </label>
+                </div>
+                <input type="date" id="quick-intern-deadline" class="form-control">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="quick-intern-status">Initial Status</label>
+              <select id="quick-intern-status" class="form-control">
+                <option value="Applied">Applied</option>
+                <option value="Interviewing">Interviewing</option>
+                <option value="Offer">Offer</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Shared Date and Notes Fields -->
+          <div class="form-group">
+            <label class="form-label" for="quick-add-date">Event Date</label>
+            <input type="date" id="quick-add-date" class="form-control monospace" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="quick-add-notes">Additional Notes</label>
+            <textarea id="quick-add-notes" class="form-control" rows="2" placeholder="Details..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="quick-add-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" type="submit" form="quick-add-form">Add Event</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sync Settings Modal Overlay (Shared globally) -->
+  <div class="overlay" id="sync-settings-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title monospace">[Sync Settings]</h3>
+        <button class="modal-close" id="sync-settings-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Select the task categories to sync with your calendar feed. Unchecked categories will be excluded:
+        </p>
+        <form id="sync-settings-form">
+          <div id="sync-categories-checkboxes" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Categories checkboxes loaded dynamically -->
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="sync-settings-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" type="submit" form="sync-settings-form">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Folder Modal Overlay -->
+  <div class="overlay" id="add-folder-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title monospace">[Create New Folder]</h3>
+        <button class="modal-close" id="folder-modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-folder-form">
+          <div class="form-group">
+            <label class="form-label" for="folder-name-input">Folder Name</label>
+            <input type="text" id="folder-name-input" class="form-control" required placeholder="Enter folder name...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="folder-modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" type="submit" form="add-folder-form">Create Folder</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Premium Glassmorphic Login Modal Overlay -->
+  <div class="overlay" id="login-overlay">
+    <div class="modal login-modal" style="max-width: 400px; padding: 2rem; border: 1px solid var(--accent);">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <img src="src/img/logo.jpg" alt="Logo" style="width: 48px; height: 48px; border-radius: 8px; object-fit: cover; margin-bottom: 0.5rem; border: 1px solid var(--accent);">
+        <h3 class="monospace" style="margin: 0; font-size: 1.25rem; color: var(--text-primary); letter-spacing: 1px;">SYSTEM ACCESS INITIALIZATION</h3>
+        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">SECURE LINK TO REAL-TIME CLOUD NODE</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email Node Address</label>
+          <input type="email" id="login-email" class="form-control" placeholder="user@domain.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Access Cipher Code</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;">
+          <button class="btn btn-primary" type="submit" style="width: 100%; padding: 0.75rem;">AUTHENTICATE SESSION</button>
+          <button class="btn" id="btn-guest-login" type="button" style="width: 100%; padding: 0.75rem; border: 1px dashed var(--text-secondary);">DEPLOY DEFAULT GUEST (rudra)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- App Script Entry Hook -->
+  <script type="module" src="src/js/app.js"></script>
+</body>
+</html>

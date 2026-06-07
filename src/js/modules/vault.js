@@ -1,0 +1,672 @@
+/* -------------------------------------------------------------
+   MY LOOM // DOCUMENT VAULT VIEW MODULE
+   ------------------------------------------------------------- */
+
+import { getDocuments, addDocument, deleteDocument, storeFileBlob, getFileBlob, subscribe, getFolders, addFolder, updateFolder, deleteFolder, getDocumentsByFolder } from '../store.js';
+import { writeTerminal } from '../app.js';
+import { showDialog, showPrompt } from '../components/dialog.js';
+
+let storeUnsubscribe = null;
+let containerRef = null;
+let activeTagFilter = 'ALL';
+let activeFolderId = 'root';
+
+// Track active Object URLs to revoke them when closing the modal
+let activeObjectUrl = null;
+
+export const VaultView = {
+  render(container) {
+    containerRef = container;
+    
+    // 1. Build Layout structure (added PDF Viewer Modal)
+    container.innerHTML = `
+      <header class="view-header">
+        <h1 class="view-title">Document Vault</h1>
+      </header>
+
+      <!-- Drag & Drop Upload Zone -->
+      <div class="dropzone" id="file-dropzone" style="position: relative;">
+        <span class="dropzone-icon">⏏</span>
+        <div class="dropzone-text">Drag & drop files here or click to transmit</div>
+        <div class="progress-bar-container" id="upload-progress-container" style="display: none; max-width: 320px; margin: 1.25rem auto 0 auto;">
+          <div class="progress-bar" id="upload-progress-bar" style="width: 0%;"></div>
+        </div>
+        <div id="upload-status-text" class="monospace" style="display: none; font-size: 0.75rem; color: var(--accent); margin-top: 0.5rem; font-weight: bold;">TRANSMITTING... 0%</div>
+        <input type="file" id="file-input" style="display: none;" multiple>
+      </div>
+
+      <!-- Breadcrumbs and Folders directories -->
+      <div class="vault-breadcrumbs" id="vault-breadcrumbs"></div>
+      <div class="vault-folders-grid" id="vault-folders-grid"></div>
+
+      <!-- Filters & Tags Panel -->
+      <div class="toolbar">
+        <div class="actions-group" style="flex: 1; align-items: center; gap: 0.75rem;">
+          <input type="text" id="vault-search" class="form-control search-input" placeholder="Search filenames...">
+          <button class="btn" id="btn-add-folder">+ Folder</button>
+        </div>
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">
+          Filter tag: <span id="current-tag-indicator" class="tag">ALL</span>
+        </div>
+      </div>
+
+      <!-- Tag Quick Links Bar -->
+      <div id="vault-tags-cloud" class="select-none" style="margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <!-- Dynamic Tags List -->
+      </div>
+
+      <!-- Document Log Table -->
+      <div class="widget">
+        <h2 class="widget-title">Vault Catalog</h2>
+        <div class="widget-content">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px; text-align: center;">Type</th>
+                  <th>File Name</th>
+                  <th style="width: 120px;">File Size</th>
+                  <th class="col-date" style="width: 130px;">Ingest Date</th>
+                  <th>Metadata Tags</th>
+                  <th style="width: 130px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vault-table-body">
+                <!-- Dynamically populated files -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF Modal Document Viewer Overlay -->
+      <div class="overlay" id="pdf-viewer-overlay">
+        <div class="modal" style="max-width: 850px; width: 90%; height: auto;">
+          <div class="modal-header">
+            <h3 class="modal-title monospace" id="pdf-viewer-title">[File Viewer]</h3>
+            <button class="modal-close" id="pdf-modal-close-btn">&times;</button>
+          </div>
+          <div class="modal-body" style="padding: 1.5rem;">
+            <iframe class="pdf-viewer-frame" id="pdf-viewer-iframe"></iframe>
+            <div class="pdf-viewer-actions">
+              <button class="btn" id="pdf-btn-open-tab">Open in New Tab</button>
+              <button class="btn btn-primary" id="pdf-btn-open-app">Download / Open on Device</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 2. Bind DOM events
+    bindEvents();
+
+    // 3. Render initial views
+    renderBreadcrumbs();
+    renderFoldersGrid();
+    renderTagsCloud();
+    renderVaultList();
+
+    // 4. Subscribe to changes
+    storeUnsubscribe = subscribe((event) => {
+      if (event !== 'undo_redo' || activeFolderId) {
+        renderBreadcrumbs();
+        renderFoldersGrid();
+        renderTagsCloud();
+        renderVaultList();
+      }
+    });
+
+    // 5. Check sessionStorage flag to trigger upload input dialog
+    if (sessionStorage.getItem('trigger-file-upload') === 'true') {
+      sessionStorage.removeItem('trigger-file-upload');
+      setTimeout(() => {
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) fileInput.click();
+      }, 150);
+    }
+  },
+
+  destroy() {
+    if (storeUnsubscribe) {
+      storeUnsubscribe();
+      storeUnsubscribe = null;
+    }
+    revokeActiveUrl();
+    containerRef = null;
+  }
+};
+
+function revokeActiveUrl() {
+  if (activeObjectUrl) {
+    URL.revokeObjectURL(activeObjectUrl);
+    activeObjectUrl = null;
+  }
+}
+
+function bindEvents() {
+  const dropzone = document.getElementById('file-dropzone');
+  const fileInput = document.getElementById('file-input');
+  const searchInput = document.getElementById('vault-search');
+  const pdfCloseBtn = document.getElementById('pdf-modal-close-btn');
+  const pdfOverlay = document.getElementById('pdf-viewer-overlay');
+  const addFolderBtn = document.getElementById('btn-add-folder');
+
+  // Add custom folder click
+  const folderOverlay = document.getElementById('add-folder-overlay');
+  const folderForm = document.getElementById('add-folder-form');
+  const folderCloseBtn = document.getElementById('folder-modal-close-btn');
+  const folderCancelBtn = document.getElementById('folder-modal-cancel-btn');
+  const folderInput = document.getElementById('folder-name-input');
+
+  const showFolderModal = () => {
+    if (folderOverlay) {
+      folderOverlay.classList.add('active');
+      if (folderInput) {
+        setTimeout(() => folderInput.focus(), 50);
+      }
+    }
+  };
+
+  const hideFolderModal = () => {
+    if (folderOverlay) {
+      folderOverlay.classList.remove('active');
+      if (folderForm) folderForm.reset();
+    }
+  };
+
+  if (addFolderBtn) {
+    addFolderBtn.addEventListener('click', () => {
+      showFolderModal();
+    });
+  }
+
+  if (folderCloseBtn) folderCloseBtn.addEventListener('click', hideFolderModal);
+  if (folderCancelBtn) folderCancelBtn.addEventListener('click', hideFolderModal);
+  if (folderOverlay) {
+    folderOverlay.addEventListener('click', (e) => {
+      if (e.target === folderOverlay) hideFolderModal();
+    });
+  }
+
+  if (folderForm) {
+    folderForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!window.validateFormFields(folderForm)) return;
+      const name = folderInput ? folderInput.value.trim() : '';
+      if (name) {
+        // Close modal first
+        hideFolderModal();
+        const newFolder = await addFolder({ name, parentId: activeFolderId });
+        if (newFolder) writeTerminal(`Created folder: "${name}" inside current directory`, 'VAULT');
+      }
+    });
+  }
+
+  // Search filter
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderVaultList(searchInput.value, activeTagFilter);
+    });
+  }
+
+  // Clicking dropzone opens file picker
+  if (dropzone) {
+    dropzone.addEventListener('click', () => {
+      fileInput.click();
+    });
+  }
+
+  // Drag-and-drop styles toggling
+  if (dropzone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      }, false);
+    });
+
+    // Catch dropped files
+    dropzone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      handleFileUploads(files);
+    });
+  }
+
+  // Catch file input changes
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const files = e.target.files;
+      handleFileUploads(files);
+    });
+  }
+
+  // Close PDF Modal
+  const closePDFModal = () => {
+    pdfOverlay.classList.remove('active');
+    const iframe = document.getElementById('pdf-viewer-iframe');
+    if (iframe) iframe.src = '';
+    revokeActiveUrl();
+  };
+
+  if (pdfCloseBtn) {
+    pdfCloseBtn.addEventListener('click', closePDFModal);
+  }
+
+  // Close modal when clicking overlay background
+  if (pdfOverlay) {
+    pdfOverlay.addEventListener('click', (e) => {
+      if (e.target === pdfOverlay) {
+        closePDFModal();
+      }
+    });
+  }
+}
+
+// Ingest real files and save them in IndexedDB
+function handleFileUploads(files) {
+  if (files.length === 0) return;
+
+  const dropzone = document.getElementById('file-dropzone');
+  const progressContainer = document.getElementById('upload-progress-container');
+  const progressBar = document.getElementById('upload-progress-bar');
+  const statusText = document.getElementById('upload-status-text');
+
+  // Lock dropzone interactions during uploads
+  if (dropzone) dropzone.style.pointerEvents = 'none';
+  if (progressContainer) progressContainer.style.display = 'block';
+  if (statusText) statusText.style.display = 'block';
+
+  let currentFileIndex = 0;
+  
+  const uploadNextFile = () => {
+    if (currentFileIndex >= files.length) {
+      setTimeout(() => {
+        if (dropzone) dropzone.style.pointerEvents = 'auto';
+        if (progressContainer) progressContainer.style.display = 'none';
+        if (statusText) statusText.style.display = 'none';
+        if (progressBar) progressBar.style.width = '0%';
+        writeTerminal(`Ingested ${files.length} document(s) in IndexedDB.`, 'VAULT');
+      }, 500);
+      return;
+    }
+
+    const file = files[currentFileIndex];
+    let progress = 0;
+    
+    // Simulate upload ticking progress
+    const interval = setInterval(async () => {
+      progress += Math.floor(Math.random() * 25) + 15;
+      
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+
+        const nameParts = file.name.split('.');
+        const ext = nameParts.length > 1 ? nameParts.pop().toLowerCase() : 'bin';
+        
+        let tags = ['user'];
+        if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) tags.push('image');
+        else if (['pdf', 'doc', 'docx'].includes(ext)) tags.push('document');
+        else if (['zip', 'rar', 'tar', 'gz'].includes(ext)) tags.push('archive');
+        else if (['txt', 'md', 'json', 'csv'].includes(ext)) tags.push('text');
+
+        // 1. Create document metadata record in store (assigning to activeFolderId!)
+        const newDoc = await addDocument({
+          name: file.name,
+          size: file.size,
+          folderId: activeFolderId,
+          type: ext,
+          tags: tags,
+          hasRealBlob: true
+        });
+
+        // 2. Store binary data blob inside IndexedDB
+        if (newDoc) await storeFileBlob(newDoc.id, file);
+
+        currentFileIndex++;
+        uploadNextFile();
+      }
+
+      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (statusText) statusText.textContent = `TRANSMITTING: ${file.name.substring(0, 20)}... (${progress}%)`;
+    }, 120);
+  };
+
+  uploadNextFile();
+}
+
+function renderBreadcrumbs() {
+  const breadcrumbsContainer = document.getElementById('vault-breadcrumbs');
+  if (!breadcrumbsContainer) return;
+
+  const folders = getFolders();
+  const path = [];
+  let current = folders.find(f => f.id === activeFolderId);
+  
+  while (current) {
+    path.unshift(current);
+    current = folders.find(f => f.id === current.parentId);
+  }
+  
+  if (activeFolderId !== 'root' && !path.find(p => p.id === 'root')) {
+    const rootFolder = folders.find(f => f.id === 'root') || { id: 'root', name: 'Home' };
+    path.unshift(rootFolder);
+  }
+
+  breadcrumbsContainer.innerHTML = path.map((p, idx) => {
+    const isLast = idx === path.length - 1;
+    return `<span class="vault-breadcrumb-item ${isLast ? 'active' : ''}" data-id="${p.id}">${escapeHTML(p.name)}</span>` + (isLast ? '' : ' &gt; ');
+  }).join('');
+
+  breadcrumbsContainer.querySelectorAll('.vault-breadcrumb-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = item.getAttribute('data-id');
+      if (id && id !== activeFolderId) {
+        activeFolderId = id;
+        renderBreadcrumbs();
+        renderFoldersGrid();
+        renderVaultList();
+      }
+    });
+  });
+}
+
+function renderFoldersGrid() {
+  const grid = document.getElementById('vault-folders-grid');
+  if (!grid) return;
+
+  const folders = getFolders();
+  const children = folders.filter(f => f.parentId === activeFolderId && f.id !== 'root');
+
+  if (children.length === 0) {
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    return;
+  }
+
+  grid.style.display = 'grid';
+  grid.innerHTML = children.map(f => `
+    <div class="folder-card" data-id="${f.id}" title="Double click to open" style="position: relative;">
+      <div class="folder-icon">📁</div>
+      <div class="folder-name">${escapeHTML(f.name)}</div>
+      <div class="folder-actions" style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 10;">
+        <button class="btn btn-icon btn-rename-folder" data-id="${f.id}" style="width: 24px; height: 24px; padding: 0; font-size: 0.65rem; border-radius: 4px;" title="Rename Folder">✏️</button>
+        <button class="btn btn-icon btn-delete-folder" data-id="${f.id}" style="width: 24px; height: 24px; padding: 0; font-size: 0.65rem; color: var(--danger); border-color: rgba(239,68,68,0.2); border-radius: 4px;" title="Delete Folder">&times;</button>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.folder-card').forEach(card => {
+    card.addEventListener('dblclick', () => {
+      const id = card.getAttribute('data-id');
+      if (id) {
+        activeFolderId = id;
+        renderBreadcrumbs();
+        renderFoldersGrid();
+        renderVaultList();
+      }
+    });
+  });
+
+  // Rename folder binding
+  grid.querySelectorAll('.btn-rename-folder').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const folders = getFolders();
+      const f = folders.find(folder => folder.id === id);
+      if (f) {
+        showPrompt('Enter new name for folder:', f.name, (newName) => {
+          if (newName && newName.trim() !== '') {
+            updateFolder(id, { name: newName.trim() });
+            writeTerminal(`Renamed folder "${f.name}" to "${newName.trim()}"`, 'VAULT');
+          }
+        });
+      }
+    });
+  });
+
+  // Delete folder binding
+  grid.querySelectorAll('.btn-delete-folder').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const folders = getFolders();
+      const f = folders.find(folder => folder.id === id);
+      if (f) {
+        showDialog(`Are you sure you want to delete folder "${f.name}" and all of its subfolders and files?`, () => {
+          deleteFolder(id);
+          writeTerminal(`Deleted folder "${f.name}"`, 'WARN');
+        });
+      }
+    });
+  });
+}
+
+function renderTagsCloud() {
+  if (!containerRef) return;
+  const cloud = document.getElementById('vault-tags-cloud');
+  if (!cloud) return;
+
+  const docs = getDocumentsByFolder(activeFolderId);
+  const tagsSet = new Set();
+  docs.forEach(doc => {
+    if (doc.tags && Array.isArray(doc.tags)) {
+      doc.tags.forEach(t => tagsSet.add(t));
+    }
+  });
+
+  const uniqueTags = ['ALL', ...Array.from(tagsSet)];
+  
+  cloud.innerHTML = uniqueTags.map(tag => {
+    const isSelected = activeTagFilter === tag;
+    return `
+      <span class="tag tag-btn" data-tag="${tag}" style="cursor: pointer; ${isSelected ? 'background-color: var(--accent); color: white; border-color: var(--accent)' : ''}">
+        ${tag.toUpperCase()}
+      </span>
+    `;
+  }).join('');
+
+  // Click tag to filter
+  cloud.querySelectorAll('.tag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTagFilter = btn.getAttribute('data-tag');
+      const searchInput = document.getElementById('vault-search');
+      const query = searchInput ? searchInput.value : '';
+      
+      const indicator = document.getElementById('current-tag-indicator');
+      if (indicator) indicator.textContent = activeTagFilter.toUpperCase();
+
+      renderTagsCloud();
+      renderVaultList(query, activeTagFilter);
+    });
+  });
+}
+
+function renderVaultList(searchQuery = '', filterTag = 'ALL') {
+  if (!containerRef) return;
+  const tableBody = document.getElementById('vault-table-body');
+  if (!tableBody) return;
+
+  let docs = getDocumentsByFolder(activeFolderId);
+
+  // Search filter
+  if (searchQuery.trim() !== '') {
+    const query = searchQuery.toLowerCase();
+    docs = docs.filter(d => d.name.toLowerCase().includes(query));
+  }
+
+  // Tag filter
+  if (filterTag !== 'ALL') {
+    docs = docs.filter(d => d.tags && d.tags.includes(filterTag));
+  }
+
+  if (docs.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+          No files in this directory.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tableBody.innerHTML = docs.map(doc => {
+    const sizeString = formatBytes(doc.size);
+    const dateString = new Date(doc.uploadDate).toLocaleDateString();
+    
+    // Stylized PDF terracotta icon versus others
+    let icon = '🗋';
+    if (doc.type === 'pdf') {
+      icon = '<span style="color: var(--accent); font-size: 1.25rem; font-weight: bold;" title="Terracotta PDF">📄</span>';
+    } else if (['png', 'jpg', 'jpeg', 'svg', 'gif'].includes(doc.type)) {
+      icon = '🖼';
+    } else if (['zip', 'rar', 'tar', 'gz'].includes(doc.type)) {
+      icon = '🗀';
+    } else if (['txt', 'md', 'json', 'csv'].includes(doc.type)) {
+      icon = '🖺';
+    }
+
+    return `
+      <tr>
+        <td style="font-size: 1.25rem; text-align: center;">${icon}</td>
+        <td>
+          <span class="vault-filename-link" data-id="${doc.id}" style="font-weight: 700; color: var(--text-primary); cursor: pointer;" title="Open in themed viewer">
+            ${escapeHTML(doc.name)}
+          </span>
+        </td>
+        <td>${sizeString}</td>
+        <td class="monospace" style="font-size: 0.85rem;">${dateString}</td>
+        <td>
+          ${doc.tags.map(t => `<span class="tag">${escapeHTML(t)}</span>`).join(' ')}
+        </td>
+        <td style="text-align: right;">
+          <button class="btn btn-icon btn-view-file" data-id="${doc.id}" title="Open Viewer">👁</button>
+          <button class="btn btn-icon btn-delete-file" data-id="${doc.id}" style="color: var(--danger); border-color: rgba(239,68,68,0.2)" title="Purge File">&times;</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Bind clicks
+  // 1. File name link clicking (opens modal)
+  tableBody.querySelectorAll('.vault-filename-link').forEach(link => {
+    link.addEventListener('click', () => {
+      openPDFViewer(link.getAttribute('data-id'));
+    });
+  });
+
+  // 2. Eye icon clicking (opens modal)
+  tableBody.querySelectorAll('.btn-view-file').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openPDFViewer(btn.getAttribute('data-id'));
+    });
+  });
+
+  // 3. Purge button
+  tableBody.querySelectorAll('.btn-delete-file').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const doc = getDocuments().find(d => d.id === id);
+      if (doc) {
+        showDialog(`Are you sure you want to delete file: "${doc.name}"?`, () => {
+          deleteDocument(id);
+          writeTerminal(`Deleted file: "${doc.name}"`, 'WARN');
+        });
+      }
+    });
+  });
+}
+
+// Open modal PDF / file viewer
+async function openPDFViewer(docId) {
+  const doc = getDocuments().find(d => d.id === docId);
+  if (!doc) return;
+
+  const pdfOverlay = document.getElementById('pdf-viewer-overlay');
+  const pdfTitle = document.getElementById('pdf-viewer-title');
+  const iframe = document.getElementById('pdf-viewer-iframe');
+  
+  if (!pdfOverlay || !iframe) return;
+
+  // Retrieve blob binary payload from IndexedDB
+  const blob = await getFileBlob(docId);
+  let fileBlob = blob;
+
+  // If no blob is found (seeded mock files), generate placeholder sheet
+  if (!fileBlob) {
+    fileBlob = new Blob([
+      `MY LOOM SECURE DOCUMENT DECRYPTION SHEET\n========================================\n\n` +
+      `File Title:  ${doc.name}\n` +
+      `File Size:   ${formatBytes(doc.size)}\n` +
+      `Ingest Date: ${new Date(doc.uploadDate).toLocaleString()}\n` +
+      `File Format: ${doc.type.toUpperCase()}\n` +
+      `Metadata:    ${doc.tags.join(', ')}\n\n` +
+      `----------------------------------------\n` +
+      `STATUS: Placeholder Decryption Successful.\n\n` +
+      `This is a pre-seeded placeholder document. Real files uploaded via drag-and-drop will render completely (PDFs, images, or code sheets) inside this viewer.`
+    ], { type: 'text/plain;charset=utf-8' });
+  }
+
+  // Revoke previous URL to prevent memory leaks
+  revokeActiveUrl();
+
+  // Create new local URL pointer
+  activeObjectUrl = URL.createObjectURL(fileBlob);
+  
+  // Set iframe source
+  iframe.src = activeObjectUrl;
+  pdfTitle.textContent = `[Viewing: ${doc.name}]`;
+
+  // Bind Open in New Tab action
+  const tabBtn = document.getElementById('pdf-btn-open-tab');
+  tabBtn.onclick = (e) => {
+    e.preventDefault();
+    window.open(activeObjectUrl, '_blank');
+    writeTerminal(`Opened file in new tab: ${doc.name}`, 'SYS');
+  };
+
+  // Bind Open in System App action
+  // Downloading file natively triggers Samsung Notes / Drive "open with" on mobile devices
+  const appBtn = document.getElementById('pdf-btn-open-app');
+  appBtn.onclick = (e) => {
+    e.preventDefault();
+    const a = document.createElement('a');
+    a.href = activeObjectUrl;
+    a.download = doc.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    writeTerminal(`Downloaded/opened document on device: ${doc.name}`, 'SYS');
+  };
+
+  // Display overlay modal
+  pdfOverlay.classList.add('active');
+}
+
+// Helpers
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}

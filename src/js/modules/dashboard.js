@@ -1,0 +1,459 @@
+/* -------------------------------------------------------------
+   MY LOOM // OPERATIONS DASHBOARD VIEW MODULE
+   ------------------------------------------------------------- */
+
+import { getTasks, getInternships, getBookmarks, getDocuments, getCalendarEvents, subscribe, getCategoryColor, updateTask } from '../store.js';
+import { writeTerminal } from '../app.js';
+import { showDialog } from '../components/dialog.js';
+
+let storeUnsubscribe = null;
+let containerRef = null;
+let currentCalDate = new Date();
+let selectedBacklogTask = null;
+
+export const DashboardView = {
+  render(container) {
+    containerRef = container;
+    
+    // Choose initial random backlog task if none selected
+    fetchRandomBacklogTask();
+
+    // 1. Scaffold Dashboard widgets layout in a clean Bento Grid configuration
+    container.innerHTML = `
+      <header class="view-header">
+        <h1 class="view-title">Operations Dashboard</h1>
+      </header>
+
+      <!-- Row 1: Quick Actions (Full width) -->
+      <section class="widget" id="widget-quick-actions" style="margin-bottom: 24px;">
+        <h2 class="widget-title">Quick Actions</h2>
+        <div class="widget-content" style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; padding: 1.5rem;">
+          <button class="btn btn-primary" id="btn-quick-task">✚ Create Task</button>
+          <button class="btn btn-primary" id="btn-quick-intern">✚ Log Internship</button>
+          <button class="btn btn-primary" id="btn-quick-link">✚ Save Link</button>
+          <button class="btn btn-primary" id="btn-quick-doc">✚ Upload Document</button>
+        </div>
+      </section>
+
+      <!-- Bento Grid (2fr Left Column, 1fr Right Column) -->
+      <div class="dashboard-bento-grid">
+        <!-- Left Column (2fr) -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <!-- Immediate Focus Widget -->
+          <section class="widget focus-widget" id="widget-focus">
+            <h2 class="widget-title">Immediate Focus</h2>
+            <div class="widget-content">
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="col-status">State</th>
+                      <th>Task Details</th>
+                      <th class="col-date">Deadline</th>
+                      <th class="col-priority">Priority</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-focus-list">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Vault Activity Widget -->
+          <section class="widget vault-activity-widget" id="widget-vault-activity">
+            <h2 class="widget-title">Vault Activity</h2>
+            <div class="widget-content" id="vault-activity-content">
+              <!-- Loaded dynamically -->
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Column (1fr) -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <!-- Operations Calendar Widget -->
+          <section class="widget calendar-widget" id="widget-calendar">
+            <h2 class="widget-title">Operations Calendar</h2>
+            <div class="widget-content" style="padding: 1.5rem;">
+              <div class="calendar-container" style="border: none; padding: 0; box-shadow: none; background: transparent; max-width: 100%;">
+                <div class="calendar-header">
+                  <button class="btn" id="dash-cal-prev" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">&lt;</button>
+                  <div class="calendar-month-title" id="dash-cal-title">Month Year</div>
+                  <button class="btn" id="dash-cal-next" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">&gt;</button>
+                </div>
+                <div class="calendar-grid" id="dash-cal-grid">
+                  <!-- Monthly cells loaded dynamically -->
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- From the Backlog Widget -->
+          <section class="widget backlog-reminder-widget" id="widget-backlog-reminder">
+            <h2 class="widget-title">From the Backlog</h2>
+            <div class="widget-content" id="backlog-reminder-content">
+              <!-- Loaded dynamically -->
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+
+    // 2. Bind Events
+    bindEvents();
+
+    // 3. Render dynamic views
+    renderDashboard();
+
+    // 4. Subscribe to store changes to keep UI reactive
+    storeUnsubscribe = subscribe(() => {
+      renderDashboard();
+    });
+  },
+
+  destroy() {
+    if (storeUnsubscribe) {
+      storeUnsubscribe();
+      storeUnsubscribe = null;
+    }
+    containerRef = null;
+  }
+};
+
+function fetchRandomBacklogTask() {
+  const tasks = getTasks();
+  const backlogTasks = tasks.filter(t => t.status !== 'Done' && (t.category === 'Someday / Backlog' || !t.dueDate));
+  if (backlogTasks.length === 0) {
+    selectedBacklogTask = null;
+    return;
+  }
+  // Check if current selection is still valid and active in backlog
+  if (!selectedBacklogTask || !backlogTasks.some(t => t.id === selectedBacklogTask.id)) {
+    const idx = Math.floor(Math.random() * backlogTasks.length);
+    selectedBacklogTask = backlogTasks[idx];
+  }
+}
+
+function bindEvents() {
+  const prevBtn = document.getElementById('dash-cal-prev');
+  const nextBtn = document.getElementById('dash-cal-next');
+  const calGrid = document.getElementById('dash-cal-grid');
+
+  const btnTask = document.getElementById('btn-quick-task');
+  const btnIntern = document.getElementById('btn-quick-intern');
+  const btnLink = document.getElementById('btn-quick-link');
+  const btnDoc = document.getElementById('btn-quick-doc');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  if (btnTask) {
+    btnTask.addEventListener('click', () => {
+      window.openQuickAddModal(todayStr, 'task');
+    });
+  }
+  if (btnIntern) {
+    btnIntern.addEventListener('click', () => {
+      window.openQuickAddModal(todayStr, 'internship');
+    });
+  }
+  if (btnLink) {
+    btnLink.addEventListener('click', () => {
+      sessionStorage.setItem('open-bookmark-modal', 'true');
+      location.hash = '#/library';
+    });
+  }
+  if (btnDoc) {
+    btnDoc.addEventListener('click', () => {
+      sessionStorage.setItem('trigger-file-upload', 'true');
+      location.hash = '#/vault';
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+      renderDashboard();
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+      renderDashboard();
+    });
+  }
+
+  if (calGrid) {
+    calGrid.addEventListener('click', (e) => {
+      const cell = e.target.closest('.calendar-day');
+      if (!cell || !cell.dataset.date) return;
+      
+      const isActive = cell.classList.contains('active');
+      
+      // Remove active from all others
+      document.querySelectorAll('.calendar-day.active').forEach(c => c.classList.remove('active'));
+      
+      const dateStr = cell.dataset.date;
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      const events = getCalendarEvents(month, year);
+      const dayEvents = events.filter(ev => ev.date === dateStr);
+
+      if (!isActive && dayEvents.length > 0 && window.innerWidth <= 900) {
+        // On mobile: first tap shows tooltip
+        cell.classList.add('active');
+      } else {
+        // Desktop or second tap on mobile: show dialog
+        if (dayEvents.length > 0) {
+          const eventsList = dayEvents.map(ev => `• ${ev.title}`).join('\n');
+          const message = `SCHEDULED EVENTS FOR ${dateStr}:\n\n${eventsList}\n\nWould you like to schedule a new task on this date?`;
+          showDialog(message, () => {
+            window.openQuickAddModal(dateStr, 'task');
+          });
+        } else {
+          window.openQuickAddModal(dateStr, 'task');
+        }
+      }
+    });
+  }
+}
+
+function renderDashboard() {
+  if (!containerRef) return;
+
+  const tasks = getTasks();
+  const documents = getDocuments();
+  const today = new Date();
+
+  // --- 1. Render Operations Month Calendar Grid ---
+  const calTitle = document.getElementById('dash-cal-title');
+  const calGrid = document.getElementById('dash-cal-grid');
+  if (calTitle && calGrid) {
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    calTitle.textContent = `${monthNames[month]} ${year}`;
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevTotalDays = new Date(year, month, 0).getDate();
+
+    let gridHTML = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => `
+      <div class="calendar-day-label">${day}</div>
+    `).join('');
+
+    const events = getCalendarEvents(month, year);
+
+    // Prev month cells padding
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNum = prevTotalDays - i;
+      gridHTML += `<div class="calendar-day other-month">${dayNum}</div>`;
+    }
+
+    // Current month cells
+    for (let day = 1; day <= totalDays; day++) {
+      const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayEvents = events.filter(e => e.date === dateStr);
+
+      let eventDotHTML = '';
+      let tooltipHTML = '';
+
+      if (dayEvents.length > 0) {
+        eventDotHTML = `<div class="calendar-day-events">` + 
+          dayEvents.slice(0, 3).map(e => {
+            return `<div class="calendar-event-dot" style="background-color: ${e.color}; box-shadow: 0 0 4px ${e.color};"></div>`;
+          }).join('') + 
+          `</div>`;
+        
+        tooltipHTML = `<div class="calendar-tooltip">` + 
+          dayEvents.map(e => `• ${escapeHTML(e.title)}`).join('<br>') + 
+          `</div>`;
+      }
+
+      gridHTML += `
+        <div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStr}" style="cursor: pointer;">
+          ${day}
+          ${eventDotHTML}
+          ${tooltipHTML}
+        </div>
+      `;
+    }
+
+    // Next month cells padding
+    const totalCells = firstDayIndex + totalDays;
+    const remainingCells = 42 - totalCells;
+    for (let day = 1; day <= remainingCells; day++) {
+      gridHTML += `<div class="calendar-day other-month">${day}</div>`;
+    }
+
+    calGrid.innerHTML = gridHTML;
+  }
+
+  // --- 2. Render Suggestion Widget: Immediate Focus ---
+  const focusListEl = document.getElementById('dashboard-focus-list');
+  if (focusListEl) {
+    const focusTasks = tasks.filter(t => {
+      if (t.status === 'Done') return false;
+      if (t.dueDate) {
+        const todayDate = new Date();
+        todayDate.setHours(0,0,0,0);
+        const tomorrowDate = new Date(todayDate);
+        tomorrowDate.setDate(todayDate.getDate() + 1);
+        
+        // Match today or tomorrow
+        const d = new Date(t.dueDate + 'T12:00:00');
+        return d >= todayDate && d <= new Date(tomorrowDate.getTime() + 86400000);
+      }
+      return false;
+    });
+
+    focusTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    if (focusTasks.length === 0) {
+      focusListEl.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+            No immediate tasks due today or tomorrow.
+          </td>
+        </tr>
+      `;
+    } else {
+      focusListEl.innerHTML = focusTasks.map(task => {
+        const isInProgress = task.status === 'In Progress';
+        let stateIndicator = '[ ]';
+        let stateClass = 'todo-pending';
+        if (isInProgress) {
+          stateIndicator = '[-]';
+          stateClass = 'todo-in-progress';
+        }
+
+        return `
+          <tr style="cursor: default;">
+            <td class="status-cell ${stateClass} monospace" style="font-size: 0.95rem;">${stateIndicator}</td>
+            <td>
+              <div style="font-weight: 700; color: var(--text-primary);">${escapeHTML(task.title)}</div>
+              ${task.description ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;">${escapeHTML(task.description)}</div>` : ''}
+            </td>
+            <td class="monospace" style="font-size: 0.8rem;">${task.dueDate || 'N/A'}</td>
+            <td><span class="pri-badge pri-${task.priority.toLowerCase()}">${task.priority}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  // --- 3. Render Suggestion Widget: Vault Activity ---
+  const vaultContent = document.getElementById('vault-activity-content');
+  if (vaultContent) {
+    const sortedDocs = [...documents]
+      .sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate))
+      .slice(0, 3);
+
+    if (sortedDocs.length === 0) {
+      vaultContent.innerHTML = `<div style="color: var(--text-muted); text-align: center; font-size: 0.85rem; padding: 1rem 0;">No documents in vault yet.</div>`;
+    } else {
+      vaultContent.innerHTML = `
+        <ul class="activity-list" style="margin: 0; padding: 0;">
+          ${sortedDocs.map(d => {
+            let icon = '📄';
+            if (d.type === 'pdf') {
+              icon = '<span style="color: var(--accent);">📄</span>';
+            } else if (['png', 'jpg', 'jpeg', 'svg', 'gif'].includes(d.type)) {
+              icon = '🖼️';
+            } else if (['zip', 'rar', 'tar', 'gz'].includes(d.type)) {
+              icon = '📦';
+            }
+            
+            return `
+              <li class="activity-item" style="border-left: 4px solid var(--accent); padding-left: 1rem;">
+                <span class="file-icon" style="font-size: 1.2rem;">${icon}</span>
+                <div class="file-details">
+                  <span class="file-name" style="font-weight: 700;">${escapeHTML(d.name)}</span>
+                  <span class="file-meta" style="font-size: 0.75rem; color: var(--text-muted);">${formatBytes(d.size)} &bull; Uploaded ${formatRelativeTime(d.uploadDate)}</span>
+                </div>
+              </li>
+            `;
+          }).join('')}
+        </ul>
+      `;
+    }
+  }
+
+  // --- 4. Render From the Backlog Reminder Widget ---
+  const backlogContent = document.getElementById('backlog-reminder-content');
+  if (backlogContent) {
+    fetchRandomBacklogTask();
+    if (!selectedBacklogTask) {
+      backlogContent.innerHTML = `<div style="color: var(--text-muted); text-align: center; font-size: 0.85rem; padding: 1.5rem 0;">No pending backlog tasks.</div>`;
+    } else {
+      backlogContent.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 1rem; height: 100%; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.25rem;">
+              ${escapeHTML(selectedBacklogTask.title)}
+            </div>
+            ${selectedBacklogTask.description ? `<div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 0.5rem;">${escapeHTML(selectedBacklogTask.description)}</div>` : ''}
+            <div>
+              <span class="tag">${escapeHTML(selectedBacklogTask.category)}</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-backlog-add-today" data-id="${selectedBacklogTask.id}" style="width: 100%; justify-content: center;">
+            ⚡ Add to Today
+          </button>
+        </div>
+      `;
+
+      // Bind button listener
+      const addTodayBtn = document.getElementById('btn-backlog-add-today');
+      if (addTodayBtn) {
+        addTodayBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const id = addTodayBtn.getAttribute('data-id');
+          const todayStr = new Date().toISOString().split('T')[0];
+          const taskTitle = selectedBacklogTask.title;
+          selectedBacklogTask = null; // Clear first so store notification picks a new one
+          updateTask(id, { dueDate: todayStr, category: 'Daily Tasks' });
+          writeTerminal(`Promoted backlog task to today: "${taskTitle}"`, 'TASK');
+        });
+      }
+    }
+  }
+}
+
+// Relative time formatting helper
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  return `${diffDays}d ago`;
+}
+
+// Byte formatting helper
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
