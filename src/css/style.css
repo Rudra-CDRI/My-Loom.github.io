@@ -1232,20 +1232,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0.25rem 0.75rem;
-  gap: 1rem;
+  padding: 0.2rem 0.5rem;
+  gap: 0.5rem;
   border-radius: 6px;
-  min-height: 36px;
+  min-height: 32px;
 }
-.cards-grid.view-mode-minimal .card-thumbnail {
-  display: none;
+.cards-grid.view-mode-minimal .card-thumbnail,
+.cards-grid.view-mode-minimal .link-thumbnail-container {
+  display: none !important;
 }
 .cards-grid.view-mode-minimal .card-header {
   margin-bottom: 0;
   flex: 1;
 }
 .cards-grid.view-mode-minimal .card-title {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1254,29 +1255,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0;
   flex-direction: row;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   flex: none;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
 }
 .cards-grid.view-mode-minimal .card-body > div {
   margin-bottom: 0 !important;
 }
+/* Hide the 'Accessed Xm ago' text to save space in minimal view */
+.cards-grid.view-mode-minimal .card-body > div:nth-child(2) {
+  display: none;
+}
 .cards-grid.view-mode-minimal .btn-visit-library {
   width: auto;
   margin-top: 0;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.65rem;
 }
 .cards-grid.view-mode-minimal .card-footer {
-  border-top: none;
-  padding-top: 0;
-  flex: none;
-  display: flex;
-  align-items: center;
-}
-.cards-grid.view-mode-minimal .tag {
-  padding: 0.1rem 0.3rem;
-  font-size: 0.6rem;
+  display: none; /* Hide tags in minimal mode for absolute maximum density */
 }
 
 
