@@ -559,9 +559,11 @@ function getLinkThumbnailHTML(url) {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
       isYouTube = true;
-      if (urlObj.hostname.includes('youtube.com')) {
+      if (urlObj.pathname.includes('/shorts/')) {
+        ytId = urlObj.pathname.split('/shorts/')[1].split('/')[0];
+      } else if (urlObj.hostname.includes('youtube.com') && urlObj.searchParams.get('v')) {
         ytId = urlObj.searchParams.get('v');
-      } else {
+      } else if (urlObj.hostname.includes('youtu.be')) {
         ytId = urlObj.pathname.split('/')[1];
       }
     }
@@ -573,10 +575,11 @@ function getLinkThumbnailHTML(url) {
         </div>
       `;
     } else {
+      const encodedUrl = encodeURIComponent(url);
       const domain = urlObj.hostname;
       return `
         <div class="link-thumbnail-container" style="background-color: var(--bg-surface);">
-          <img class="link-favicon-img" src="https://www.google.com/s2/favicons?domain=${domain}&sz=128" alt="Favicon" onerror="this.style.display='none'">
+          <img class="link-thumbnail-img" src="https://v1.opengraph.11ty.dev/${encodedUrl}/medium/" alt="Thumbnail" onerror="this.src='https://unavatar.io/${domain}'; this.onerror=null;">
         </div>
       `;
     }
