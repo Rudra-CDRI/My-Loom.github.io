@@ -1454,9 +1454,10 @@ body.light-mode .dropzone {
     display: inline-block;
   }
   
-  html, body {
+  html, body.command-center {
     height: auto;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   
   .app-layout {
