@@ -10,7 +10,7 @@ let storeUnsubscribe = null;
 let containerRef = null;
 let activeTagFilter = 'ALL';
 let activeFolderId = 'root';
-let currentVaultViewMode = localStorage.getItem('myloom_vault_view') || 'table';
+let currentVaultViewMode = localStorage.getItem('myloom_vault_view') || 'grid';
 
 // Track active Object URLs to revoke them when closing the modal
 let activeObjectUrl = null;
@@ -47,7 +47,6 @@ export const VaultView = {
           <button class="btn" id="btn-add-folder">+ Folder</button>
         </div>
         <div class="actions-group view-toggles" style="background: rgba(0,0,0,0.2); padding: 0.2rem; border-radius: 8px; border: 1px solid var(--border-color); margin: 0 1rem;">
-          <button class="btn btn-icon vault-view-toggle-btn ${currentVaultViewMode === 'table' ? 'active' : ''}" data-view="table" title="Table View" style="padding: 0.3rem 0.5rem; border-radius: 6px;">☰</button>
           <button class="btn btn-icon vault-view-toggle-btn ${currentVaultViewMode === 'grid' ? 'active' : ''}" data-view="grid" title="Grid View" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⊞</button>
           <button class="btn btn-icon vault-view-toggle-btn ${currentVaultViewMode === 'compact' ? 'active' : ''}" data-view="compact" title="Compact Grid" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⊟</button>
           <button class="btn btn-icon vault-view-toggle-btn ${currentVaultViewMode === 'minimal' ? 'active' : ''}" data-view="minimal" title="Minimal List" style="padding: 0.3rem 0.5rem; border-radius: 6px;">≡</button>
@@ -532,7 +531,7 @@ function renderVaultList(searchQuery = '', filterTag = 'ALL') {
     return;
   }
 
-  if (currentVaultViewMode === 'table') {
+  if (currentVaultViewMode === 'minimal') {
     let html = `
       <div class="table-container">
         <table class="data-table">

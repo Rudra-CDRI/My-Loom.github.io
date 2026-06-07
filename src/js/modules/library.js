@@ -30,7 +30,6 @@ export const LibraryView = {
         <div class="actions-group view-toggles" style="background: rgba(0,0,0,0.2); padding: 0.2rem; border-radius: 8px; border: 1px solid var(--border-color);">
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'grid' ? 'active' : ''}" data-view="grid" title="Grid View" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⊞</button>
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'compact' ? 'active' : ''}" data-view="compact" title="Compact Grid" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⊟</button>
-          <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'list' ? 'active' : ''}" data-view="list" title="List View" style="padding: 0.3rem 0.5rem; border-radius: 6px;">☰</button>
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'minimal' ? 'active' : ''}" data-view="minimal" title="Minimal List" style="padding: 0.3rem 0.5rem; border-radius: 6px;">≡</button>
         </div>
         <div class="actions-group" style="margin-left: auto;">

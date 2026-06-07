@@ -1223,53 +1223,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding-top: 0.75rem;
 }
 
-/* List View */
-.cards-grid.view-mode-list {
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-.cards-grid.view-mode-list .card {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas: 
-    "thumb header"
-    "thumb body"
-    "thumb footer";
-  gap: 0 1.5rem;
-  padding: 1.25rem;
-  align-items: start;
-}
-.cards-grid.view-mode-list .card-thumbnail {
-  grid-area: thumb;
-  height: 100%;
-  min-height: 100px;
-  margin-bottom: 0;
-}
-.cards-grid.view-mode-list .card-header { grid-area: header; margin-bottom: 0.5rem; }
-.cards-grid.view-mode-list .card-body { 
-  grid-area: body; 
-  margin-bottom: 0.5rem; 
-  flex-direction: row; 
-  align-items: center; 
-  gap: 1.5rem; 
-}
-.cards-grid.view-mode-list .card-body > div { margin-bottom: 0 !important; }
-.cards-grid.view-mode-list .btn-visit-library { width: auto; margin-top: 0; padding: 0.4rem 1.2rem; }
-.cards-grid.view-mode-list .card-footer { grid-area: footer; border-top: none; padding-top: 0; justify-content: flex-start; }
-
 /* Minimal List View */
 .cards-grid.view-mode-minimal {
   grid-template-columns: 1fr;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 .cards-grid.view-mode-minimal .card {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0.75rem 1.25rem;
-  gap: 1.5rem;
-  border-radius: 12px;
+  padding: 0.25rem 0.75rem;
+  gap: 1rem;
+  border-radius: 6px;
+  min-height: 36px;
 }
 .cards-grid.view-mode-minimal .card-thumbnail {
   display: none;
@@ -1278,12 +1244,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0;
   flex: 1;
 }
+.cards-grid.view-mode-minimal .card-title {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .cards-grid.view-mode-minimal .card-body {
   margin-bottom: 0;
   flex-direction: row;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   flex: none;
+  font-size: 0.7rem;
 }
 .cards-grid.view-mode-minimal .card-body > div {
   margin-bottom: 0 !important;
@@ -1291,12 +1264,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .cards-grid.view-mode-minimal .btn-visit-library {
   width: auto;
   margin-top: 0;
-  padding: 0.3rem 1rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
 }
 .cards-grid.view-mode-minimal .card-footer {
   border-top: none;
   padding-top: 0;
   flex: none;
+  display: flex;
+  align-items: center;
+}
+.cards-grid.view-mode-minimal .tag {
+  padding: 0.1rem 0.3rem;
+  font-size: 0.6rem;
 }
 
 
@@ -1704,6 +1684,21 @@ body.light-mode .dropzone {
     gap: 0.5rem;
     width: 100%;
     margin-left: 0 !important;
+  }
+
+  .actions-group.view-toggles {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center;
+    width: auto !important;
+    margin: 0.5rem 0 !important;
+  }
+
+  .actions-group.view-toggles .btn-icon {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 36px;
   }
 
   .card, .widget, .view-container, .main-content {
