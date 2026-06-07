@@ -393,9 +393,12 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
   const allCategories = getBookmarkCategories();
   
   // Initialize map with all created categories to ensure empty ones display
-  allCategories.forEach(cat => {
-    categoriesMap[cat] = [];
-  });
+  // ONLY if no search or tag filters are active
+  if (searchQuery.trim() === '' && filterTag === 'ALL') {
+    allCategories.forEach(cat => {
+      categoriesMap[cat] = [];
+    });
+  }
 
   bookmarks.forEach(b => {
     const cat = b.category || b.tags?.[0] || 'General';
@@ -414,7 +417,7 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
           <span>${escapeHTML(category)}</span>
           <div style="display: flex; gap: 0.5rem;">
             <button class="btn btn-icon btn-edit-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Rename Category">✎</button>
-            <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">&times;</button>
+            <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">🗑️</button>
           </div>
         </h2>
         <div class="cards-grid" style="margin-top: 0;">
