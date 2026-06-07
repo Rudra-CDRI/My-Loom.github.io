@@ -571,14 +571,14 @@ function getLinkThumbnailHTML(url) {
     if (isYouTube && ytId) {
       return `
         <div class="link-thumbnail-container">
-          <img class="link-thumbnail-img" src="https://img.youtube.com/vi/${ytId}/maxresdefault.jpg" alt="YouTube Thumbnail" onerror="this.src='https://img.youtube.com/vi/${ytId}/hqdefault.jpg'">
+          <img class="link-thumbnail-img" src="https://img.youtube.com/vi/${ytId}/maxresdefault.jpg" alt="YouTube Thumbnail" onerror="this.onerror=null; this.src='https://img.youtube.com/vi/${ytId}/hqdefault.jpg';">
         </div>
       `;
     } else {
       const domain = urlObj.hostname;
       return `
         <div class="link-thumbnail-container" style="background-color: #111;">
-          <img class="link-logo-img" src="https://unavatar.io/${domain}?fallback=false" alt="Logo" onerror="this.src='https://www.google.com/s2/favicons?domain=${domain}&sz=128'; this.onerror=null;">
+          <img class="link-logo-img" src="https://icon.horse/icon/${domain}" alt="Logo">
         </div>
       `;
     }
