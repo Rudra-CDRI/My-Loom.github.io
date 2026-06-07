@@ -12,6 +12,8 @@ let activeTagFilter = 'ALL';
 let editingBookmarkId = null;
 let currentViewMode = localStorage.getItem('myloom_library_view') || 'grid';
 let collapsedCategories = JSON.parse(localStorage.getItem('myloom_collapsed_cats') || '{}');
+let categoryOrder = JSON.parse(localStorage.getItem('myloom_category_order') || '[]');
+let draggedCategory = null;
 
 export const LibraryView = {
   render(container) {
@@ -144,6 +146,47 @@ function bindEvents() {
   document.body.addEventListener('input', (e) => {
     if (e.target.matches('#library-search')) {
       renderBookmarksList(e.target.value, activeTagFilter);
+    }
+  });
+
+  // HTML5 Drag and Drop for Categories
+  document.body.addEventListener('dragstart', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if (handle) {
+      draggedCategory = handle.closest('.category-section');
+      e.dataTransfer.effectAllowed = 'move';
+      draggedCategory.style.opacity = '0.4';
+    }
+  });
+
+  document.body.addEventListener('dragover', (e) => {
+    if (!draggedCategory) return;
+    e.preventDefault(); // allow drop
+    e.dataTransfer.dropEffect = 'move';
+    const targetSection = e.target.closest('.category-section');
+    if (targetSection && targetSection !== draggedCategory) {
+      const rect = targetSection.getBoundingClientRect();
+      const middleY = rect.top + rect.height / 2;
+      if (e.clientY < middleY) {
+        targetSection.parentNode.insertBefore(draggedCategory, targetSection);
+      } else {
+        targetSection.parentNode.insertBefore(draggedCategory, targetSection.nextSibling);
+      }
+    }
+  });
+
+  document.body.addEventListener('dragend', (e) => {
+    if (draggedCategory) {
+      draggedCategory.style.opacity = '1';
+      draggedCategory = null;
+      // Save new order
+      const newOrder = [];
+      document.querySelectorAll('.category-section').forEach(sec => {
+        const cat = sec.getAttribute('data-category');
+        if (cat) newOrder.push(cat);
+      });
+      localStorage.setItem('myloom_category_order', JSON.stringify(newOrder));
+      categoryOrder = newOrder;
     }
   });
 
@@ -333,7 +376,7 @@ function bindEvents() {
 
     // Toggle Category
     const toggleHeader = e.target.closest('.category-header');
-    if (toggleHeader && !e.target.closest('.btn-icon')) {
+    if (toggleHeader && !e.target.closest('.btn-icon') && !e.target.closest('.drag-handle')) {
       const catName = toggleHeader.getAttribute('data-toggle-cat');
       const safeId = catName.replace(/\W/g, '');
       const content = document.getElementById(`cat-content-${safeId}`);
@@ -460,18 +503,29 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
     categoriesMap[matchingCat].push(b);
   });
 
+  // Sort categories by saved order
+  const sortedEntries = Object.entries(categoriesMap).sort((a, b) => {
+    let indexA = categoryOrder.indexOf(a[0]);
+    let indexB = categoryOrder.indexOf(b[0]);
+    if (indexA === -1) indexA = 999;
+    if (indexB === -1) indexB = 999;
+    if (indexA !== indexB) return indexA - indexB;
+    return a[0].localeCompare(b[0]);
+  });
+
   let html = '';
-  for (const [category, catBookmarks] of Object.entries(categoriesMap)) {
+  for (const [category, catBookmarks] of sortedEntries) {
     const isCollapsed = collapsedCategories[category] || false;
     const safeCatId = category.replace(/\W/g, '');
     html += `
-      <div class="category-section" style="margin-bottom: 2.5rem;">
+      <div class="category-section" style="margin-bottom: 2.5rem;" data-category="${escapeHTML(category)}">
         <h2 class="category-header" data-toggle-cat="${escapeHTML(category)}" style="cursor: pointer; user-select: none; font-size: 1.1rem; font-weight: 700; color: var(--accent); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.25rem; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span class="cat-toggle-icon" style="transition: transform 0.2s; transform: ${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; display: inline-block;">▼</span>
             <span>${escapeHTML(category)}</span>
           </div>
-          <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation()">
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div class="drag-handle" draggable="true" style="cursor: grab; font-size: 1.2rem; color: var(--text-muted); padding: 0 0.5rem;" title="Drag to reorder">⋮⋮</div>
             <button class="btn btn-icon btn-edit-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Rename Category">✎</button>
             <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">🗑️</button>
           </div>
