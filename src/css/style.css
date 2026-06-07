@@ -892,7 +892,9 @@ body.light-mode .progress-bar-container {
   left: 50%;
   transform: translateX(-50%);
   background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glow);
   padding: 0.75rem 1rem;
   border-radius: 12px;
   font-size: 0.8rem;
@@ -1466,6 +1468,7 @@ body.light-mode .dropzone {
   
   .sidebar {
     position: fixed;
+    z-index: 100;
     left: -260px;
     top: 0;
     bottom: 0;
@@ -1478,8 +1481,24 @@ body.light-mode .dropzone {
     box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8);
   }
 
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .sidebar-backdrop.active {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .view-container {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   /* Core grid layout adjustments for mobile: force 12-column widget spans */
@@ -1520,7 +1539,19 @@ body.light-mode .dropzone {
   }
   
   .widget-content, .card, .modal-body {
-    padding: 12px !important;
+    padding: 1rem !important;
+  }
+  
+  .btn, .nav-link {
+    min-height: 44px; /* Touch target minimum */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal {
+    max-height: 85vh;
+    overflow-y: auto;
   }
   
   .toolbar {

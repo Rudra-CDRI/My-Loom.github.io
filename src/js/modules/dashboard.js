@@ -98,6 +98,22 @@ export const DashboardView = {
           </section>
         </div>
       </div>
+
+      <!-- Dashboard Calendar Day View Modal -->
+      <div class="overlay" id="dash-calendar-day-overlay">
+        <div class="modal" style="max-width: 420px;">
+          <div class="modal-header">
+            <h3 class="modal-title monospace" id="dash-cal-day-title">[Day Overview]</h3>
+            <button class="modal-close" id="dash-cal-day-close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="dash-cal-day-events-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+              <!-- Rendered dynamically -->
+            </div>
+            <button class="btn btn-primary" id="dash-cal-day-add-task-btn" style="width: 100%;">+ Initialize Task for this Date</button>
+          </div>
+        </div>
+      </div>
     `;
 
     // 2. Bind Events
@@ -189,31 +205,27 @@ function bindEvents() {
       const cell = e.target.closest('.calendar-day');
       if (!cell || !cell.dataset.date) return;
       
-      const isActive = cell.classList.contains('active');
-      
-      // Remove active from all others
-      document.querySelectorAll('.calendar-day.active').forEach(c => c.classList.remove('active'));
-      
       const dateStr = cell.dataset.date;
-      const year = currentCalDate.getFullYear();
-      const month = currentCalDate.getMonth();
-      const events = getCalendarEvents(month, year);
-      const dayEvents = events.filter(ev => ev.date === dateStr);
+      renderDashboardDayView(dateStr);
+      document.getElementById('dash-calendar-day-overlay').classList.add('active');
+    });
+  }
 
-      if (!isActive && dayEvents.length > 0 && window.innerWidth <= 900) {
-        // On mobile: first tap shows tooltip
-        cell.classList.add('active');
-      } else {
-        // Desktop or second tap on mobile: show dialog
-        if (dayEvents.length > 0) {
-          const eventsList = dayEvents.map(ev => `• ${ev.title}`).join('\n');
-          const message = `SCHEDULED EVENTS FOR ${dateStr}:\n\n${eventsList}\n\nWould you like to schedule a new task on this date?`;
-          showDialog(message, () => {
-            window.openQuickAddModal(dateStr, 'task');
-          });
-        } else {
-          window.openQuickAddModal(dateStr, 'task');
-        }
+  const dashDayOverlay = document.getElementById('dash-calendar-day-overlay');
+  if (dashDayOverlay) {
+    dashDayOverlay.addEventListener('click', (e) => {
+      // Close Day View
+      if (e.target.closest('#dash-cal-day-close-btn') || e.target === dashDayOverlay) {
+        dashDayOverlay.classList.remove('active');
+      }
+      
+      // Add Task from Day View
+      const addBtn = e.target.closest('#dash-cal-day-add-task-btn');
+      if (addBtn) {
+        e.preventDefault();
+        dashDayOverlay.classList.remove('active');
+        const dateStr = addBtn.getAttribute('data-date');
+        window.openQuickAddModal(dateStr, 'task');
       }
     });
   }
@@ -449,6 +461,54 @@ function formatBytes(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function renderDashboardDayView(dateStr) {
+  const container = document.getElementById('dash-cal-day-events-list');
+  const title = document.getElementById('dash-cal-day-title');
+  const addBtn = document.getElementById('dash-cal-day-add-task-btn');
+  if (!container || !title || !addBtn) return;
+
+  // Format date
+  const d = new Date(dateStr);
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  title.textContent = `[${d.toLocaleDateString(undefined, options)}]`;
+  addBtn.setAttribute('data-date', dateStr);
+
+  const tasks = getTasks();
+  let events = tasks.filter(t => t.dueDate === dateStr).map(t => ({
+    title: t.title,
+    category: t.category,
+    color: getCategoryColor(t.category),
+    isDone: t.status === 'Done'
+  }));
+
+  const internships = getInternships();
+  // Internship Deadlines
+  internships.filter(i => i.deadline === dateStr && i.status !== 'Rejected').forEach(i => {
+    events.push({ title: `Deadline: ${i.company}`, category: 'Internship', color: '#ef4444', isDone: false });
+  });
+  // Internship Start Dates
+  internships.filter(i => i.startDate === dateStr && i.status !== 'Rejected').forEach(i => {
+    events.push({ title: `Start Date: ${i.company}`, category: 'Internship', color: '#10b981', isDone: false });
+  });
+
+  if (events.length === 0) {
+    container.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">No tasks or deadlines scheduled.</div>`;
+    return;
+  }
+
+  container.innerHTML = events.map(e => `
+    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; opacity: ${e.isDone ? '0.5' : '1'}; text-decoration: ${e.isDone ? 'line-through' : 'none'};">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background-color: ${e.color}; box-shadow: 0 0 4px ${e.color};"></div>
+      <div style="flex: 1;">
+        <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary);">${escapeHTML(e.title)}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">
+          ${escapeHTML(e.category)}
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function escapeHTML(str) {

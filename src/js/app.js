@@ -202,26 +202,49 @@ function initMobileNavigation() {
   const sidebar = document.getElementById('app-sidebar');
   const sidebarLinks = document.querySelectorAll('.nav-link');
 
+  // Create backdrop element dynamically
+  let backdrop = document.getElementById('sidebar-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'sidebar-backdrop';
+    backdrop.className = 'sidebar-backdrop';
+    document.body.appendChild(backdrop);
+  }
+
+  function toggleMenu(forceClose = false) {
+    if (forceClose) {
+      sidebar.classList.remove('open');
+      backdrop.classList.remove('active');
+    } else {
+      sidebar.classList.toggle('open');
+      if (sidebar.classList.contains('open')) {
+        backdrop.classList.add('active');
+      } else {
+        backdrop.classList.remove('active');
+      }
+    }
+  }
+
   if (menuToggle && sidebar) {
     // Open/Close menu click
     menuToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      sidebar.classList.toggle('open');
+      toggleMenu();
     });
 
     // Close menu when navigation happens
     sidebarLinks.forEach(link => {
       link.addEventListener('click', () => {
         if (window.innerWidth <= 900) {
-          sidebar.classList.remove('open');
+          toggleMenu(true);
         }
       });
     });
 
-    // Close sidebar when clicking outside on mobile devices
-    document.addEventListener('click', (e) => {
-      if (window.innerWidth <= 900 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-        sidebar.classList.remove('open');
+    // Close sidebar when clicking outside
+    backdrop.addEventListener('click', () => {
+      if (window.innerWidth <= 900) {
+        toggleMenu(true);
       }
     });
   }
