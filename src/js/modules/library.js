@@ -285,6 +285,24 @@ function bindEvents() {
       return;
     }
 
+    // Edit Category
+    const editCatBtn = e.target.closest('.btn-edit-cat');
+    if (editCatBtn) {
+      const oldCat = editCatBtn.getAttribute('data-cat');
+      showPrompt(`Rename category "${oldCat}" to:`, oldCat, async (newCat) => {
+        const trimmed = newCat.trim();
+        if (trimmed && trimmed.toLowerCase() !== oldCat.toLowerCase()) {
+          const result = await updateBookmarkCategory(oldCat, trimmed);
+          if (result) {
+            writeTerminal(`Renamed link category from "${oldCat}" to "${trimmed}"`, 'LINK');
+          } else {
+            showDialog('Category already exists or invalid name.');
+          }
+        }
+      });
+      return;
+    }
+
     // Delete Category
     const deleteCatBtn = e.target.closest('.btn-delete-cat');
     if (deleteCatBtn) {
@@ -372,13 +390,20 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
 
   // Group bookmarks by category
   const categoriesMap = {};
+  const allCategories = getBookmarkCategories();
+  
+  // Initialize map with all created categories to ensure empty ones display
+  allCategories.forEach(cat => {
+    categoriesMap[cat] = [];
+  });
+
   bookmarks.forEach(b => {
     const cat = b.category || b.tags?.[0] || 'General';
-    const capitalizedCat = cat.charAt(0).toUpperCase() + cat.slice(1);
-    if (!categoriesMap[capitalizedCat]) {
-      categoriesMap[capitalizedCat] = [];
+    const matchingCat = allCategories.find(c => c.toLowerCase() === cat.toLowerCase()) || (cat.charAt(0).toUpperCase() + cat.slice(1));
+    if (!categoriesMap[matchingCat]) {
+      categoriesMap[matchingCat] = [];
     }
-    categoriesMap[capitalizedCat].push(b);
+    categoriesMap[matchingCat].push(b);
   });
 
   let html = '';
@@ -387,9 +412,13 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
       <div class="category-section" style="margin-bottom: 2.5rem;">
         <h2 class="category-header" style="font-size: 1.1rem; font-weight: 700; color: var(--accent); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.25rem; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
           <span>${escapeHTML(category)}</span>
-          <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">&times;</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-icon btn-edit-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Rename Category">✎</button>
+            <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">&times;</button>
+          </div>
         </h2>
         <div class="cards-grid" style="margin-top: 0;">
+          ${catBookmarks.length === 0 ? '<div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">No links in this category.</div>' : ''}
           ${catBookmarks.map(b => {
             let domain = 'unknown';
             try {
