@@ -584,11 +584,11 @@ function getLinkThumbnailHTML(url) {
         </div>
       `;
     } else {
-      // 3. Generic Links: High-res site logo via Google faviconV2
-      const domain = urlObj.hostname;
+      // 3. Generic Links: Website screenshot via WordPress mshots
+      const encodedUrl = encodeURIComponent(url);
       return `
-        <div class="link-thumbnail-container link-logo-bg">
-          <img class="link-logo-img" src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(url)}&size=128" alt="${domain}">
+        <div class="link-thumbnail-container">
+          <img class="link-thumbnail-img" src="https://s.wordpress.com/mshots/v1/${encodedUrl}?w=600" alt="Site Preview">
         </div>
       `;
     }
