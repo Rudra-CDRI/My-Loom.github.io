@@ -181,20 +181,13 @@ body.cursor-hover .cursor-dot {
   height: 2px;
 }
 
-/* Scrollbars */
+/* Scrollbars - Hidden globally but scrolling functionality remains intact */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
 }
-::-webkit-scrollbar-track {
-  background: var(--bg-base);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 99px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* -------------------------------------------------------------
