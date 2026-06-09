@@ -492,6 +492,7 @@ export async function addDocument(doc) {
     notify('documents');
     notify('render');
   }
+  
   return newDoc;
 }
 
