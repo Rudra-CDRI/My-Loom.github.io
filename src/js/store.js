@@ -43,6 +43,10 @@ export async function initializeStore() {
     categories = (!resCategories.error && resCategories.data) ? resCategories.data.map(c => {
       categoryColors[c.name] = c.color || '#3b82f6';
       return c.name;
+    }).sort((a, b) => {
+      if (a === 'Daily Tasks') return -1;
+      if (b === 'Daily Tasks') return 1;
+      return 0;
     }) : [];
     bookmarkCategories = (!resBookmarkCats.error && resBookmarkCats.data) ? resBookmarkCats.data.map(c => c.name) : [];
   } catch (err) {
@@ -132,6 +136,10 @@ async function syncCategoriesFromDatabase() {
     categories = data.map(c => {
       categoryColors[c.name] = c.color || '#3b82f6';
       return c.name;
+    }).sort((a, b) => {
+      if (a === 'Daily Tasks') return -1;
+      if (b === 'Daily Tasks') return 1;
+      return 0;
     });
     notify('categories');
   }
