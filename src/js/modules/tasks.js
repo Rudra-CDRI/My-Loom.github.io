@@ -666,10 +666,16 @@ function renderTasksList() {
 
   const taskStreamWidget = document.getElementById('task-stream-widget');
   if (taskStreamWidget) {
+    // Reset all borders to default first
+    taskStreamWidget.style.borderColor = 'var(--border-color)';
+    
+    // Apply the category color ONLY to the top border for a sleek, subtle accent
     if (activeFilterCategory !== 'ALL') {
-      taskStreamWidget.style.borderColor = getCategoryColor(activeFilterCategory) || 'var(--border-color)';
+      taskStreamWidget.style.borderTopColor = getCategoryColor(activeFilterCategory) || 'var(--border-color)';
+      taskStreamWidget.style.borderTopWidth = '2px'; // make it slightly thicker so the accent pops
     } else {
-      taskStreamWidget.style.borderColor = 'var(--border-color)';
+      taskStreamWidget.style.borderTopColor = 'var(--border-color)';
+      taskStreamWidget.style.borderTopWidth = '1px';
     }
   }
 
