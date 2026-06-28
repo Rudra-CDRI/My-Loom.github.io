@@ -2370,6 +2370,8 @@ h3, .modal-title {
     width: 100% !important;
     max-width: none !important;
     flex: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
   }
 
   /* Form Layouts */
