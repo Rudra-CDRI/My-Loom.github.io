@@ -652,6 +652,7 @@ export async function addInternship(internship) {
       date: internship.date || new Date().toISOString().split('T')[0],
       startDate: internship.startDate || internship.date || new Date().toISOString().split('T')[0],
       deadline: internship.deadline || 'N/A',
+      customDates: internship.customDates || [],
       notes: internship.notes || ''
     };
     

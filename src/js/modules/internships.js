@@ -140,6 +140,13 @@ export const InternshipView = {
                 </div>
               </div>
               <div class="form-group">
+                <label class="form-label">Custom Dates</label>
+                <div id="internship-custom-dates-container" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <!-- Dynamically populated custom date rows go here -->
+                </div>
+                <button type="button" class="btn" id="btn-add-custom-date" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">+ Add Custom Date</button>
+              </div>
+              <div class="form-group">
                 <label class="form-label" for="internship-notes">Notes</label>
                 <textarea id="internship-notes" class="form-control" rows="3" placeholder="Resume details, referrals, interview times..."></textarea>
               </div>
@@ -246,17 +253,26 @@ function bindEvents() {
       const deadline = isRolling ? 'N/A' : (deadlineInput ? deadlineInput.value : 'N/A');
       const notes = document.getElementById('internship-notes').value.trim();
 
+      const customDates = Array.from(document.querySelectorAll('.custom-date-row')).map(row => {
+        return {
+          label: row.querySelector('.cd-label').value.trim(),
+          date: row.querySelector('.cd-date').value,
+          color: row.querySelector('.cd-color').value || '#c97d4e'
+        };
+      }).filter(cd => cd.label && cd.date);
+
       if (company && role) {
         // Close modal first
         document.getElementById('add-internship-overlay').classList.remove('active');
         form.reset();
+        document.getElementById('internship-custom-dates-container').innerHTML = '';
         setDateDefaults();
         if (deadlineInput) {
           deadlineInput.disabled = false;
           deadlineInput.setAttribute('required', 'true');
         }
 
-        const newApp = await addInternship({ company, role, status, date, startDate, deadline, notes });
+        const newApp = await addInternship({ company, role, status, date, startDate, deadline, customDates, notes });
         if (newApp) writeTerminal(`Registered internship: "${newApp.role}" at ${newApp.company}`, 'INTERN');
       }
     }
@@ -271,9 +287,11 @@ function bindEvents() {
     }
 
     // Hide Modal
-    if (e.target.closest('#modal-close-btn') || e.target.closest('#modal-cancel-btn')) {
+    if (e.target.matches('#modal-close-btn') || e.target.closest('#modal-cancel-btn') || e.target.matches('#add-internship-overlay')) {
       document.getElementById('add-internship-overlay').classList.remove('active');
       document.getElementById('add-internship-form').reset();
+      const container = document.getElementById('internship-custom-dates-container');
+      if (container) container.innerHTML = '';
       setDateDefaults();
       const deadlineInput = document.getElementById('internship-deadline');
       if (deadlineInput) {
@@ -283,15 +301,32 @@ function bindEvents() {
       return;
     }
 
-    if (e.target.matches('#add-internship-overlay')) {
-      e.target.classList.remove('active');
-      document.getElementById('add-internship-form').reset();
-      setDateDefaults();
-      const deadlineInput = document.getElementById('internship-deadline');
-      if (deadlineInput) {
-        deadlineInput.disabled = false;
-        deadlineInput.setAttribute('required', 'true');
+    // Add Custom Date Row
+    if (e.target.closest('#btn-add-custom-date')) {
+      const container = document.getElementById('internship-custom-dates-container');
+      if (container) {
+        const row = document.createElement('div');
+        row.className = 'custom-date-row';
+        row.style.display = 'flex';
+        row.style.gap = '0.5rem';
+        row.style.alignItems = 'center';
+        row.innerHTML = `
+          <input type="text" class="form-control cd-label" placeholder="Event (e.g. Interview)" required style="flex: 2; padding: 0.25rem 0.5rem;">
+          <input type="date" class="form-control cd-date" required style="flex: 2; padding: 0.25rem 0.5rem;">
+          <div style="position: relative; width: 32px; height: 32px; flex-shrink: 0; border-radius: 4px; overflow: hidden; border: 1px solid var(--border);" title="Event Color">
+            <input type="color" class="cd-color" value="#c97d4e" style="position: absolute; inset: -10px; width: 50px; height: 50px; cursor: pointer; border: none; padding: 0;">
+          </div>
+          <button type="button" class="btn btn-icon btn-remove-custom-date" style="color: var(--danger); border: none; opacity: 0.7; padding: 0 0.5rem;" title="Remove">&times;</button>
+        `;
+        container.appendChild(row);
       }
+      return;
+    }
+
+    // Remove Custom Date Row
+    if (e.target.closest('.btn-remove-custom-date')) {
+      const row = e.target.closest('.custom-date-row');
+      if (row) row.remove();
       return;
     }
 
@@ -381,8 +416,18 @@ function renderInternshipList() {
       <tr>
         <td><span style="font-weight: 700; color: var(--text-primary);">${escapeHTML(item.company)}</span></td>
         <td>${escapeHTML(item.role)}</td>
-        <td class="monospace" style="font-size: 0.85rem;">${item.startDate || item.date}</td>
-        <td class="monospace" style="font-size: 0.85rem;">${item.deadline || 'N/A'}</td>
+        <td class="monospace" style="font-size: 0.85rem;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 4px #4ade80; display: inline-block;"></span>
+            ${item.startDate || item.date}
+          </div>
+        </td>
+        <td class="monospace" style="font-size: 0.85rem;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            ${item.deadline && item.deadline !== 'N/A' ? '<span style="width: 6px; height: 6px; border-radius: 50%; background: #f87171; box-shadow: 0 0 4px #f87171; display: inline-block;"></span>' : ''}
+            <span style="${(!item.deadline || item.deadline === 'N/A') ? 'color: var(--text-muted);' : ''}">${item.deadline || 'N/A'}</span>
+          </div>
+        </td>
         <td>
           <span class="status-badge status-${statusClass}">${currentStatus}</span>
         </td>
@@ -524,27 +569,40 @@ function renderInternshipCalendar() {
     // Find matching internship opening start dates and deadlines
     const dayStarts = internships.filter(i => i.startDate === dateStr);
     const dayDeadlines = internships.filter(i => i.deadline === dateStr);
+    const dayCustoms = [];
+    
+    internships.forEach(i => {
+      if (i.customDates && Array.isArray(i.customDates)) {
+        i.customDates.forEach(cd => {
+          if (cd.date === dateStr) {
+            dayCustoms.push({ ...cd, company: i.company, role: i.role });
+          }
+        });
+      }
+    });
 
     let eventDotHTML = '';
     let tooltipHTML = '';
 
     const dayMilestones = [
-      ...dayStarts.map(i => ({ type: 'start', label: `[Open] ${i.company}`, color: '#06b6d4', detail: `${i.company} - ${i.role} (Opening)` })),
-      ...dayDeadlines.map(i => ({ type: 'deadline', label: `[Due] ${i.company}`, color: '#ec4899', detail: `${i.company} - ${i.role} (Deadline)` }))
+      ...dayStarts.map(i => ({ type: 'start', label: `[Open] ${i.company}`, color: '#4ade80', detail: `${i.company} - ${i.role} (Start Date)` })),
+      ...dayDeadlines.map(i => ({ type: 'deadline', label: `[Due] ${i.company}`, color: '#f87171', detail: `${i.company} - ${i.role} (Deadline)` })),
+      ...dayCustoms.map(cd => ({ type: 'custom', label: `[${cd.label}] ${cd.company}`, color: cd.color || '#c97d4e', detail: `${cd.company} - ${cd.role} (${cd.label})` }))
     ];
 
     if (dayMilestones.length > 0) {
-      eventDotHTML = `<div class="calendar-day-events">` + 
-        dayMilestones.slice(0, 3).map(m => `<div class="calendar-event-dot" style="background-color: ${m.color}; box-shadow: 0 0 4px ${m.color};"></div>`).join('') + 
+      eventDotHTML = `<div class="calendar-day-events" style="display: flex; justify-content: center; align-items: center; gap: 3px; margin-top: 4px;">` + 
+        dayMilestones.slice(0, 3).map(m => `<div class="calendar-event-dot" style="width: 4px; height: 4px; border-radius: 50%; background-color: ${m.color}; box-shadow: 0 0 4px ${m.color};"></div>`).join('') + 
+        (dayMilestones.length > 3 ? `<div style="font-size: 0.55rem; color: var(--text-secondary); font-weight: bold; line-height: 4px; margin-left: 1px;">+${dayMilestones.length - 3}</div>` : '') +
         `</div>`;
       
-      tooltipHTML = `<div class="calendar-tooltip">` + 
-        dayMilestones.map(m => `• ${escapeHTML(m.detail)}`).join('<br>') + 
+      tooltipHTML = `<div class="calendar-tooltip" style="position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.75rem; white-space: nowrap; z-index: 50; display: none; border: 1px solid #333; box-shadow: 0 4px 12px rgba(0,0,0,0.8); flex-direction: column; gap: 0.4rem;">` + 
+        dayMilestones.map(m => `<div style="display: flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: ${m.color}; box-shadow: 0 0 4px ${m.color}; display: inline-block;"></span>${escapeHTML(m.detail)}</div>`).join('') + 
         `</div>`;
     }
 
     gridHTML += `
-      <div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStr}" style="cursor: pointer;">
+      <div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStr}" style="cursor: pointer; position: relative;" onmouseover="this.querySelector('.calendar-tooltip') && (this.querySelector('.calendar-tooltip').style.display='flex')" onmouseout="this.querySelector('.calendar-tooltip') && (this.querySelector('.calendar-tooltip').style.display='none')">
         ${day}
         ${eventDotHTML}
         ${tooltipHTML}
