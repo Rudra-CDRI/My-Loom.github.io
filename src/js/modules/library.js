@@ -36,6 +36,8 @@ export const LibraryView = {
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'minimal' ? 'active' : ''}" data-view="minimal" title="Minimal List" style="padding: 0.3rem 0.5rem; border-radius: 6px;">≡</button>
         </div>
         <div class="actions-group" style="margin-left: auto;">
+          <button class="btn" id="btn-library-expand-all" title="Expand All Categories" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">⬍ Expand All</button>
+          <button class="btn" id="btn-library-collapse-all" title="Collapse All Categories" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">⬌ Collapse All</button>
           <button class="btn" id="btn-manage-link-categories" title="Create a link category">+ Category</button>
           <button class="btn btn-primary" id="btn-add-bookmark">+ Register Link</button>
         </div>
@@ -224,6 +226,27 @@ function bindEvents() {
       localStorage.setItem('myloom_library_view', mode);
       document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
       viewBtn.classList.add('active');
+      const searchInput = document.getElementById('library-search');
+      renderBookmarksList(searchInput ? searchInput.value : '', activeTagFilter);
+      return;
+    }
+
+    // Expand All
+    if (e.target.closest('#btn-library-expand-all')) {
+      collapsedCategories = {};
+      localStorage.setItem('myloom_collapsed_cats', JSON.stringify(collapsedCategories));
+      const searchInput = document.getElementById('library-search');
+      renderBookmarksList(searchInput ? searchInput.value : '', activeTagFilter);
+      return;
+    }
+
+    // Collapse All
+    if (e.target.closest('#btn-library-collapse-all')) {
+      const allCategories = getBookmarkCategories();
+      allCategories.forEach(cat => {
+        collapsedCategories[cat] = true;
+      });
+      localStorage.setItem('myloom_collapsed_cats', JSON.stringify(collapsedCategories));
       const searchInput = document.getElementById('library-search');
       renderBookmarksList(searchInput ? searchInput.value : '', activeTagFilter);
       return;
