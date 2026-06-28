@@ -268,12 +268,16 @@ function bindEvents() {
       activeSearchQuery = e.target.value;
       renderTasksList();
     }
-    if (e.target.matches('.custom-color-picker')) {
+    if (e.target.matches('.custom-color-hex')) {
       const cat = e.target.getAttribute('data-cat');
-      const color = e.target.value;
-      const toggleBtn = document.querySelector(`.btn-toggle-color-picker[data-cat="${escapeHTML(cat)}"]`);
-      if (toggleBtn) toggleBtn.style.backgroundColor = color;
-      updateTaskCategory(cat, null, color);
+      let color = e.target.value.trim();
+      if (/^#[0-9A-Fa-f]{6}$/i.test(color) || /^#[0-9A-Fa-f]{3}$/i.test(color)) {
+        const preview = document.querySelector(`.custom-color-preview-${escapeHTML(cat)}`);
+        if (preview) preview.style.backgroundColor = color;
+        const toggleBtn = document.querySelector(`.btn-toggle-color-picker[data-cat="${escapeHTML(cat)}"]`);
+        if (toggleBtn) toggleBtn.style.backgroundColor = color;
+        updateTaskCategory(cat, null, color);
+      }
     }
   });
 
@@ -344,7 +348,7 @@ function bindEvents() {
       });
 
       if (palette.style.display === 'none') {
-        palette.style.display = 'grid';
+        palette.style.display = 'flex';
       } else {
         palette.style.display = 'none';
       }
@@ -937,12 +941,20 @@ function renderCategoriesManager() {
       <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">${escapeHTML(cat)}</span>
       <div style="display: flex; gap: 12px; align-items: center; position: relative;" class="color-picker-wrapper">
         <button class="btn-toggle-color-picker" data-cat="${escapeHTML(cat)}" title="Change category color" style="width: 22px; height: 22px; padding: 0; border: 2px solid rgba(255,255,255,0.1); background: ${getCategoryColor(cat)}; cursor: pointer; border-radius: 50%;"></button>
-        <div class="color-palette-popup" id="palette-${escapeHTML(cat)}" style="display: none; position: absolute; right: 0; top: 32px; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 8px; z-index: 100; width: 140px; grid-template-columns: repeat(5, 1fr); gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-          ${['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#6366f1', '#f97316', '#8b5cf6', '#64748b', '#eab308'].map(color => `
-            <button class="btn-select-color" data-cat="${escapeHTML(cat)}" data-color="${color}" style="width: 20px; height: 20px; border-radius: 50%; border: none; background: ${color}; cursor: pointer;" title="${color}"></button>
-          `).join('')}
-          <div style="position: relative; width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); cursor: pointer; overflow: hidden;" title="Custom Color">
-            <input type="color" class="custom-color-picker" data-cat="${escapeHTML(cat)}" value="${getCategoryColor(cat)}" style="opacity: 0; position: absolute; inset: -10px; width: 40px; height: 40px; cursor: pointer; padding: 0; border: none;">
+        <div class="color-palette-popup" id="palette-${escapeHTML(cat)}" style="display: none; position: absolute; right: 0; top: 32px; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 12px; z-index: 100; width: 170px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); flex-direction: column; gap: 12px;">
+          <div style="font-size: 0.7rem; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 2px;">Colors</div>
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+          ${['#ef4444', '#f97316', '#f59e0b', '#10b981', '#14b8a6', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#64748b'].map(color => {
+            const isSelected = getCategoryColor(cat) === color;
+            return `
+            <button class="btn-select-color" data-cat="${escapeHTML(cat)}" data-color="${color}" style="width: 22px; height: 22px; border-radius: 50%; border: ${isSelected ? '2px solid white' : '2px solid transparent'}; background: ${color}; cursor: pointer; transition: transform 0.1s;" title="${color}" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></button>
+            `;
+          }).join('')}
+          </div>
+          <div style="height: 1px; background: #333; margin: 2px 0;"></div>
+          <div style="display: flex; align-items: center; gap: 8px; background: #222; border: 1px solid #444; border-radius: 6px; padding: 4px 8px;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${getCategoryColor(cat)};" class="custom-color-preview-${escapeHTML(cat)}"></div>
+            <input type="text" class="custom-color-hex" data-cat="${escapeHTML(cat)}" value="${getCategoryColor(cat)}" placeholder="#HEX" style="background: transparent; border: none; color: #eee; font-size: 0.8rem; width: 100%; outline: none; font-family: monospace;">
           </div>
         </div>
         <button
