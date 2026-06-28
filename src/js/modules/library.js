@@ -172,6 +172,14 @@ function bindEvents() {
           tags.unshift(category.toLowerCase());
         }
 
+        if (!editingBookmarkId) {
+          const existing = getBookmarks();
+          if (existing.some(b => b.url === url)) {
+            showDialog('A link with this URL already exists in your library.');
+            return;
+          }
+        }
+
         const categories = getBookmarkCategories();
         if (!categories.includes(category)) {
           await addBookmarkCategory(category);

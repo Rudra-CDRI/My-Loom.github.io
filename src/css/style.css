@@ -23,7 +23,7 @@
   
   /* Typography Text Shades (High legibility, soft contrast) */
   --text-primary: #eaeaf0;      /* Pure cream for headings */
-  --text-secondary: #b0b0b8;    /* Muted off-white/gray for body text */
+  --text-secondary: #c4c4cc;    /* Muted off-white/gray for body text (Improved Contrast) */
   --text-muted: #66666a;        /* Low-contrast details */
   --text-code: #e6a278;         /* Terracotta text glow */
   
@@ -62,7 +62,7 @@ body.light-mode {
   --border-glow: rgba(102, 140, 131, 0.15); /* Subtle cool green glow */
   
   --text-primary: #2a3331;      /* Deep charcoal green for ultra-legibility */
-  --text-secondary: #5a6b66;    /* Muted forest/slate text */
+  --text-secondary: #4a5b56;    /* Muted forest/slate text (Improved Contrast) */
   --text-muted: #8b9e99;        /* Low-contrast details */
   
   --shadow-sm: 0 4px 12px rgba(42, 51, 49, 0.04);
@@ -1494,11 +1494,16 @@ body.light-mode .dropzone {
   cursor: pointer;
   line-height: 1;
   transition: var(--transition-fast);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
   color: var(--accent);
-  transform: rotate(90deg);
+  transform: rotate(90deg) scale(1.1);
 }
 
 .modal-body {
@@ -1623,6 +1628,8 @@ body.light-mode .dropzone {
     z-index: 50;
     justify-content: space-between;
     padding: 0.75rem 1.5rem;
+    flex-wrap: wrap; /* Prevent overflow on small screens */
+    overflow-x: auto;
   }
   
   .sidebar {
@@ -2188,4 +2195,8 @@ body.light-mode .folder-card:hover {
   opacity: 1;
 }
 
-
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

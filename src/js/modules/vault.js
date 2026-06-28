@@ -185,6 +185,14 @@ function bindEvents() {
       if (!window.validateFormFields(folderForm)) return;
       const name = folderInput ? folderInput.value.trim() : '';
       if (name) {
+        // Prevent duplicate folder names
+        const existingFolders = getFolders();
+        const isDuplicate = existingFolders.some(f => f.name.toLowerCase() === name.toLowerCase() && f.parentId === activeFolderId);
+        if (isDuplicate) {
+          showDialog('A folder with this name already exists here.');
+          return;
+        }
+
         // Close modal first
         hideFolderModal();
         const newFolder = await addFolder({ name, parentId: activeFolderId });

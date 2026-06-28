@@ -254,6 +254,26 @@ function initAuth() {
   const loginOverlay = document.getElementById('login-overlay');
   const loginForm = document.getElementById('login-form');
   const guestBtn = document.getElementById('btn-guest-login');
+  const togglePassBtn = document.getElementById('toggle-password-btn');
+  const passInput = document.getElementById('login-password');
+
+  // Ensure login is required if not authenticated
+  if (!localStorage.getItem('loom_auth')) {
+    loginOverlay.classList.add('active');
+  }
+
+  // Toggle password visibility
+  if (togglePassBtn && passInput) {
+    togglePassBtn.addEventListener('click', () => {
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        togglePassBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+      } else {
+        passInput.type = 'password';
+        togglePassBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+      }
+    });
+  }
 
   if (!loginOverlay || !loginForm) return;
 
@@ -328,6 +348,25 @@ window.addEventListener('DOMContentLoaded', () => {
   
   // Setup authentication and UI setup
   initAuth();
+
+  // Accessibility: Trap focus when modals are active
+  const observer = new MutationObserver(() => {
+    const isAnyModalOpen = document.querySelectorAll('.overlay.active').length > 0;
+    const appContainer = document.getElementById('app-container');
+    const sidebar = document.querySelector('.sidebar');
+    const topNavbar = document.querySelector('.top-navbar');
+    
+    if (isAnyModalOpen) {
+      if(appContainer) appContainer.setAttribute('inert', 'true');
+      if(sidebar) sidebar.setAttribute('inert', 'true');
+      if(topNavbar) topNavbar.setAttribute('inert', 'true');
+    } else {
+      if(appContainer) appContainer.removeAttribute('inert');
+      if(sidebar) sidebar.removeAttribute('inert');
+      if(topNavbar) topNavbar.removeAttribute('inert');
+    }
+  });
+  observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
 });
 
 // -------------------------------------------------------------
@@ -357,11 +396,21 @@ function initQuickAddModal() {
       internshipFields.style.display = 'none';
       document.getElementById('quick-task-title').setAttribute('required', 'true');
       document.getElementById('quick-intern-company').removeAttribute('required');
+      document.getElementById('quick-intern-company').value = '';
       document.getElementById('quick-intern-role').removeAttribute('required');
+      document.getElementById('quick-intern-role').value = '';
+      document.getElementById('quick-intern-start-date').value = '';
+      if (deadlineInput) {
+        deadlineInput.value = '';
+        deadlineInput.disabled = false;
+      }
+      if (rollingCheckbox) rollingCheckbox.checked = false;
     } else {
       taskFields.style.display = 'none';
       internshipFields.style.display = 'block';
       document.getElementById('quick-task-title').removeAttribute('required');
+      document.getElementById('quick-task-title').value = '';
+      document.getElementById('quick-task-priority').value = 'NONE';
       document.getElementById('quick-intern-company').setAttribute('required', 'true');
       document.getElementById('quick-intern-role').setAttribute('required', 'true');
     }
