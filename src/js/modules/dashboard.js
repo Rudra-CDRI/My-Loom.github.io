@@ -48,6 +48,7 @@ export const DashboardView = {
                     <tr>
                       <th class="col-status">State</th>
                       <th>Task Details</th>
+                      <th class="col-category">Category</th>
                       <th class="col-date">Deadline</th>
                       <th class="col-priority">Priority</th>
                     </tr>
@@ -330,7 +331,7 @@ function renderDashboard() {
     if (focusTasks.length === 0) {
       focusListEl.innerHTML = `
         <tr>
-          <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+          <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
             No immediate tasks due today or tomorrow.
           </td>
         </tr>
@@ -352,6 +353,7 @@ function renderDashboard() {
               <div style="font-weight: 700; color: var(--text-primary);">${escapeHTML(task.title)}</div>
               ${task.description ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;">${escapeHTML(task.description)}</div>` : ''}
             </td>
+            <td style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">${escapeHTML(task.category)}</td>
             <td class="monospace" style="font-size: 0.8rem;">${task.dueDate || 'N/A'}</td>
             <td><span class="pri-badge pri-${task.priority.toLowerCase()}">${task.priority}</span></td>
           </tr>
