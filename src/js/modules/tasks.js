@@ -17,7 +17,7 @@ let syncDeadlinesEnabled = true;
 
 // Active filters
 let activeSearchQuery = '';
-let activeFilterCategory = 'ALL';
+let activeFilterCategory = 'Daily Tasks';
 let activeFilterStatus = 'ALL';
 let activeFilterPriority = 'ALL';
 
@@ -275,6 +275,11 @@ function bindEvents() {
       activeFilterCategory = e.target.value;
       renderTasksList();
     }
+    if (e.target.matches('.category-color-picker')) {
+      const cat = e.target.getAttribute('data-cat');
+      const color = e.target.value;
+      updateTaskCategory(cat, null, color);
+    }
     if (e.target.matches('#filter-status')) {
       activeFilterStatus = e.target.value;
       renderTasksList();
@@ -515,6 +520,21 @@ function bindEvents() {
       return;
     }
 
+    // Toggle completed tasks drawer
+    if (e.target.closest('#btn-toggle-completed-tasks')) {
+      const drawer = document.getElementById('completed-tasks-drawer');
+      const icon = document.getElementById('completed-tasks-icon');
+      if (drawer.style.display === 'none') {
+        drawer.style.display = 'table-row-group';
+        icon.textContent = '▼';
+      } else {
+        drawer.style.display = 'none';
+        icon.textContent = '▶';
+      }
+      return;
+    }
+
+    // Modify Task
     const editBtn = e.target.closest('.btn-edit');
     if (editBtn) {
       const id = editBtn.getAttribute('data-id');
@@ -625,53 +645,83 @@ function renderTasksList() {
     return (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0);
   });
 
-  if (tasks.length === 0) {
-    tableBody.innerHTML = `
+  const todoTasks = tasks.filter(t => t.status !== 'Done');
+  const doneTasks = tasks.filter(t => t.status === 'Done');
+
+  let tableHTML = '';
+
+  // Render Todo / In Progress tasks
+  if (todoTasks.length > 0) {
+    tableHTML += todoTasks.map(task => renderTaskRow(task)).join('');
+  } else if (doneTasks.length === 0) {
+    tableHTML += `
       <tr>
         <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
           No operational tasks match the selected filters.
         </td>
       </tr>
     `;
-    return;
   }
 
-  tableBody.innerHTML = tasks.map(task => {
-    const isDone = task.status === 'Done';
-    const isInProgress = task.status === 'In Progress';
-    
-    let stateIndicator = '[ ]';
-    let stateClass = 'todo-pending';
-    if (isDone) {
-      stateIndicator = '[x]';
-      stateClass = 'todo-completed';
-    } else if (isInProgress) {
-      stateIndicator = '[-]';
-      stateClass = 'todo-in-progress';
-    }
-
-    return `
-      <tr>
-        <td class="status-cell ${stateClass} select-none monospace" data-id="${task.id}" style="cursor: pointer; font-size: 1.15rem;" title="Click to cycle status">
-          ${stateIndicator}
-        </td>
-        <td>
-          <div style="font-weight: 700; color: ${isDone ? 'var(--text-muted)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration: line-through;' : ''}">
-            ${escapeHTML(task.title)}
-          </div>
-          ${task.description ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHTML(task.description)}</div>` : ''}
-        </td>
-        <td><span class="tag">${escapeHTML(task.category)}</span></td>
-        <td class="col-date">${task.dueDate || 'N/A'}</td>
-        <td><span class="pri-badge pri-${task.priority.toLowerCase()}">${task.priority}</span></td>
-        <td style="text-align: right;">
-          <button class="btn btn-icon btn-cycle" data-id="${task.id}" title="Cycle status">↻</button>
-          <button class="btn btn-icon btn-edit" data-id="${task.id}" title="Modify Task">✏️</button>
-          <button class="btn btn-icon btn-delete" data-id="${task.id}" style="color: var(--danger); border-color: rgba(239,68,68,0.2)" title="Purge Task">&times;</button>
+  // Render Completed Tasks Drawer
+  if (doneTasks.length > 0) {
+    tableHTML += `
+      <tr style="background: rgba(0,0,0,0.2); cursor: pointer;" id="btn-toggle-completed-tasks">
+        <td colspan="6" style="text-align: center; padding: 0.75rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">
+          <span id="completed-tasks-icon" style="margin-right: 0.5rem; font-size: 0.7rem;">▶</span> ${doneTasks.length} Completed Tasks
         </td>
       </tr>
+      <tbody id="completed-tasks-drawer" style="display: none;">
+        ${doneTasks.map(task => renderTaskRow(task)).join('')}
+      </tbody>
     `;
-  }).join('');
+  }
+
+  tableBody.innerHTML = tableHTML;
+}
+
+function renderTaskRow(task) {
+  const isDone = task.status === 'Done';
+  const isInProgress = task.status === 'In Progress';
+  
+  let stateIndicator = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>';
+  let stateClass = 'todo-pending';
+  if (isDone) {
+    stateIndicator = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+    stateClass = 'todo-completed';
+  } else if (isInProgress) {
+    stateIndicator = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
+    stateClass = 'todo-in-progress';
+  }
+
+  // Use the color from state for the category tag
+  const catColor = getCategoryColor(task.category);
+
+  return `
+    <tr style="${isDone ? 'opacity: 0.5;' : ''}">
+      <td class="status-cell ${stateClass} select-none" data-id="${task.id}" style="cursor: pointer; padding-left: 1rem;" title="Click to cycle status">
+        ${stateIndicator}
+      </td>
+      <td>
+        <div style="font-weight: 600; color: ${isDone ? 'var(--text-muted)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration: line-through;' : ''}">
+          ${escapeHTML(task.title)}
+        </div>
+        ${task.description ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHTML(task.description)}</div>` : ''}
+      </td>
+      <td><span class="tag" style="background: ${catColor}20; color: ${catColor}; border-color: ${catColor}40;">${escapeHTML(task.category)}</span></td>
+      <td class="col-date">${task.dueDate || 'N/A'}</td>
+      <td><span class="pri-badge pri-${task.priority.toLowerCase()}">${task.priority}</span></td>
+      <td style="text-align: right;">
+        <button class="btn btn-icon btn-cycle" data-id="${task.id}" style="background: transparent; border: none; opacity: 0.6; padding: 0.2rem;" title="Cycle status">↻</button>
+        <button class="btn btn-icon btn-edit" data-id="${task.id}" style="background: transparent; border: none; opacity: 0.6; padding: 0.2rem;" title="Modify Task">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
+        <button class="btn btn-icon btn-delete" data-id="${task.id}" style="background: transparent; border: none; color: var(--danger); opacity: 0.6; padding: 0.2rem;" title="Purge Task">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        </button>
+      </td>
+    </tr>
+  `;
 }
 
 function cycleTaskStatus(taskId) {
@@ -834,7 +884,8 @@ function renderCategoriesManager() {
   container.innerHTML = cats.map((cat, idx) => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #141414; border-radius: 12px; margin-bottom: 10px; border: 1px solid #222;">
       <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">${escapeHTML(cat)}</span>
-      <div style="display: flex; gap: 12px;">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <input type="color" class="category-color-picker" data-cat="${escapeHTML(cat)}" value="${getCategoryColor(cat)}" title="Change category color" style="width: 24px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 4px;">
         <button
           class="modal-icon-btn edit-icon btn-rename-category-row"
           data-cat="${escapeHTML(cat)}"

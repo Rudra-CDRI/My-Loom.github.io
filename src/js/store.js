@@ -11,6 +11,7 @@ let documents = [];
 let bookmarks = [];
 let internships = [];
 let categories = [];
+let categoryColors = {};
 let bookmarkCategories = [];
 
 // Initialize data from Supabase
@@ -39,7 +40,10 @@ export async function initializeStore() {
     documents = (!resDocs.error && resDocs.data) ? resDocs.data : [];
     bookmarks = (!resBookmarks.error && resBookmarks.data) ? resBookmarks.data : [];
     internships = (!resInternships.error && resInternships.data) ? resInternships.data : [];
-    categories = (!resCategories.error && resCategories.data) ? resCategories.data.map(c => c.name) : [];
+    categories = (!resCategories.error && resCategories.data) ? resCategories.data.map(c => {
+      categoryColors[c.name] = c.color || '#3b82f6';
+      return c.name;
+    }) : [];
     bookmarkCategories = (!resBookmarkCats.error && resBookmarkCats.data) ? resBookmarkCats.data.map(c => c.name) : [];
   } catch (err) {
     console.error('Failed to initialize Supabase store:', err);
@@ -125,7 +129,10 @@ function handleRealtimeEvent(table, payload) {
 async function syncCategoriesFromDatabase() {
   const { data } = await supabase.from('task_categories').select('*');
   if (data) {
-    categories = data.map(c => c.name);
+    categories = data.map(c => {
+      categoryColors[c.name] = c.color || '#3b82f6';
+      return c.name;
+    });
     notify('categories');
   }
 }
@@ -224,13 +231,14 @@ export function getTaskCategories() {
   return categories;
 }
 
-export async function addTaskCategory(name) {
+export async function addTaskCategory(name, color = '#3b82f6') {
   try {
     if (name && !categories.includes(name)) {
       categories.push(name);
+      categoryColors[name] = color;
       notify('categories');
       notify('render');
-      const { error } = await supabase.from('task_categories').insert([{ name }]);
+      const { error } = await supabase.from('task_categories').insert([{ name, color }]);
       if (error) throw error;
       return true;
     }
@@ -244,18 +252,34 @@ export async function addTaskCategory(name) {
   }
 }
 
-export async function updateTaskCategory(oldName, newName) {
-  if (newName && !categories.includes(newName)) {
-    categories = categories.map(c => c === oldName ? newName : c);
-    tasks = tasks.map(t => t.category === oldName ? { ...t, category: newName } : t);
+export async function updateTaskCategory(oldName, newName, newColor) {
+  if ((newName && !categories.includes(newName)) || newColor) {
+    const finalName = newName || oldName;
+    
+    if (finalName !== oldName) {
+      categories = categories.map(c => c === oldName ? finalName : c);
+      tasks = tasks.map(t => t.category === oldName ? { ...t, category: finalName } : t);
+      // migrate color to new key
+      categoryColors[finalName] = newColor || categoryColors[oldName];
+      delete categoryColors[oldName];
+    } else if (newColor) {
+      categoryColors[oldName] = newColor;
+    }
+
     notify('categories');
     notify('tasks');
     notify('render');
 
-    const { error } = await supabase.from('task_categories').update({ name: newName }).eq('name', oldName);
+    const updatePayload = {};
+    if (newName && newName !== oldName) updatePayload.name = newName;
+    if (newColor) updatePayload.color = newColor;
+
+    const { error } = await supabase.from('task_categories').update(updatePayload).eq('name', oldName);
     if (error) return false;
     
-    await supabase.from('tasks').update({ category: newName }).eq('category', oldName);
+    if (updatePayload.name) {
+      await supabase.from('tasks').update({ category: updatePayload.name }).eq('category', oldName);
+    }
     return true;
   }
   return false;
@@ -751,10 +775,7 @@ export function saveSyncCategories(cats) {
 }
 
 export function getCategoryColor(category) {
-  if (category === 'Daily Tasks') return '#10b981';
-  if (category === 'Upcoming Deadlines') return '#c97d4e';
-  if (category === 'Someday / Backlog') return '#a855f7';
-  return '#3b82f6';
+  return categoryColors[category] || '#3b82f6';
 }
 
 export function getInternshipColor(status) {
