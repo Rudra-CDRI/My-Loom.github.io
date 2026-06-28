@@ -64,7 +64,7 @@ export const TasksView = {
           </div>
 
           <!-- Tasks List Stream -->
-          <div class="widget">
+          <div class="widget" id="task-stream-widget" style="transition: border-color 0.3s ease;">
             <h2 class="widget-title">Task Stream</h2>
             <div class="widget-content">
               <div class="table-container">
@@ -663,6 +663,15 @@ function renderTasksList() {
   if (!containerRef) return;
   const tableBody = document.getElementById('tasks-table-body');
   if (!tableBody) return;
+
+  const taskStreamWidget = document.getElementById('task-stream-widget');
+  if (taskStreamWidget) {
+    if (activeFilterCategory !== 'ALL') {
+      taskStreamWidget.style.borderColor = getCategoryColor(activeFilterCategory) || 'var(--border-color)';
+    } else {
+      taskStreamWidget.style.borderColor = 'var(--border-color)';
+    }
+  }
 
   let tasks = getTasks();
 
