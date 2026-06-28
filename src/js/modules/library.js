@@ -34,10 +34,11 @@ export const LibraryView = {
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'grid' ? 'active' : ''}" data-view="grid" title="Grid View" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⊞</button>
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'compact' ? 'active' : ''}" data-view="compact" title="Compact Grid" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⊟</button>
           <button class="btn btn-icon view-toggle-btn ${currentViewMode === 'minimal' ? 'active' : ''}" data-view="minimal" title="Minimal List" style="padding: 0.3rem 0.5rem; border-radius: 6px;">≡</button>
+          <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 0.3rem;"></div>
+          <button class="btn btn-icon" id="btn-library-expand-all" title="Expand All Categories" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⬍</button>
+          <button class="btn btn-icon" id="btn-library-collapse-all" title="Collapse All Categories" style="padding: 0.3rem 0.5rem; border-radius: 6px;">⬌</button>
         </div>
         <div class="actions-group" style="margin-left: auto;">
-          <button class="btn" id="btn-library-expand-all" title="Expand All Categories" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">⬍ Expand All</button>
-          <button class="btn" id="btn-library-collapse-all" title="Collapse All Categories" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">⬌ Collapse All</button>
           <button class="btn" id="btn-manage-link-categories" title="Create a link category">+ Category</button>
           <button class="btn btn-primary" id="btn-add-bookmark">+ Register Link</button>
         </div>
