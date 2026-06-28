@@ -509,8 +509,12 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <div class="drag-handle" style="cursor: grab; font-size: 1.2rem; color: var(--text-muted); padding: 0 0.5rem; touch-action: none;" title="Drag to reorder">⋮⋮</div>
-            <button class="btn btn-icon btn-edit-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Rename Category">✎</button>
-            <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="font-size: 0.9rem; color: var(--text-secondary);" title="Delete Category">🗑️</button>
+            <button class="btn btn-icon btn-edit-cat" data-cat="${escapeHTML(category)}" style="background: transparent; border: none; opacity: 0.6; padding: 0.2rem; display: flex; align-items: center; justify-content: center;" title="Rename Category">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button class="btn btn-icon btn-delete-cat" data-cat="${escapeHTML(category)}" style="background: transparent; border: none; color: var(--danger); opacity: 0.6; padding: 0.2rem; display: flex; align-items: center; justify-content: center;" title="Delete Category">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
           </div>
         </h2>
         <div class="category-content" id="cat-content-${safeCatId}" style="display: ${isCollapsed ? 'none' : 'block'};">
@@ -531,10 +535,16 @@ function renderBookmarksList(searchQuery = '', filterTag = 'ALL') {
                 ${thumbnailHTML}
                 <div class="card-header">
                   <div class="card-title" title="${escapeHTML(b.title)}">${escapeHTML(b.title)}</div>
-                  <div class="card-actions">
-                    <button class="btn btn-icon btn-copy" data-url="${escapeHTML(b.url)}" title="Copy Link">📋</button>
-                    <button class="btn btn-icon btn-edit-bookmark" data-id="${b.id}" title="Modify Link">✏️</button>
-                    <button class="btn btn-icon btn-delete-bookmark" data-id="${b.id}" style="color: var(--danger); border-color: rgba(239,68,68,0.2)" title="Purge Link">&times;</button>
+                  <div class="card-actions" style="display: flex; gap: 8px;">
+                    <button class="btn btn-icon btn-copy" data-url="${escapeHTML(b.url)}" style="background: transparent; border: none; opacity: 0.6; padding: 0.2rem; display: flex; align-items: center; justify-content: center;" title="Copy Link">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <button class="btn btn-icon btn-edit-bookmark" data-id="${b.id}" style="background: transparent; border: none; opacity: 0.6; padding: 0.2rem; display: flex; align-items: center; justify-content: center;" title="Modify Link">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button class="btn btn-icon btn-delete-bookmark" data-id="${b.id}" style="background: transparent; border: none; color: var(--danger); opacity: 0.6; padding: 0.2rem; display: flex; align-items: center; justify-content: center;" title="Purge Link">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
                   </div>
                 </div>
                 <div class="card-body">
