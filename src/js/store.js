@@ -31,8 +31,8 @@ export async function initializeStore() {
       supabase.from('documents').select('*'),
       supabase.from('bookmarks').select('*'),
       supabase.from('internships').select('*'),
-      supabase.from('task_categories').select('*'),
-      supabase.from('bookmark_categories').select('*')
+      supabase.from('task_categories').select('*').order('id', { ascending: true }),
+      supabase.from('bookmark_categories').select('*').order('id', { ascending: true })
     ]);
 
     tasks = (!resTasks.error && resTasks.data) ? resTasks.data : [];
@@ -127,7 +127,7 @@ function handleRealtimeEvent(table, payload) {
 }
 
 async function syncCategoriesFromDatabase() {
-  const { data } = await supabase.from('task_categories').select('*');
+  const { data } = await supabase.from('task_categories').select('*').order('id', { ascending: true });
   if (data) {
     categories = data.map(c => {
       categoryColors[c.name] = c.color || '#3b82f6';
