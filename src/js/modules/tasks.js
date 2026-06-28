@@ -268,6 +268,13 @@ function bindEvents() {
       activeSearchQuery = e.target.value;
       renderTasksList();
     }
+    if (e.target.matches('.custom-color-picker')) {
+      const cat = e.target.getAttribute('data-cat');
+      const color = e.target.value;
+      const toggleBtn = document.querySelector(`.btn-toggle-color-picker[data-cat="${escapeHTML(cat)}"]`);
+      if (toggleBtn) toggleBtn.style.backgroundColor = color;
+      updateTaskCategory(cat, null, color);
+    }
   });
 
   document.body.addEventListener('change', (e) => {
@@ -934,6 +941,9 @@ function renderCategoriesManager() {
           ${['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#6366f1', '#f97316', '#8b5cf6', '#64748b', '#eab308'].map(color => `
             <button class="btn-select-color" data-cat="${escapeHTML(cat)}" data-color="${color}" style="width: 20px; height: 20px; border-radius: 50%; border: none; background: ${color}; cursor: pointer;" title="${color}"></button>
           `).join('')}
+          <div style="position: relative; width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); cursor: pointer; overflow: hidden;" title="Custom Color">
+            <input type="color" class="custom-color-picker" data-cat="${escapeHTML(cat)}" value="${getCategoryColor(cat)}" style="opacity: 0; position: absolute; inset: -10px; width: 40px; height: 40px; cursor: pointer; padding: 0; border: none;">
+          </div>
         </div>
         <button
           class="modal-icon-btn edit-icon btn-rename-category-row"
