@@ -37,7 +37,7 @@ export const TasksView = {
           <!-- Toolbar with search, filters and trigger to add task/category -->
           <div class="toolbar" style="flex-wrap: wrap; gap: 1rem;">
             <div class="filters-group" style="flex: 1 1 auto; flex-wrap: wrap; gap: 0.75rem; display: flex;">
-              <input type="text" id="task-search" class="form-control search-input" placeholder="Search tasks..." value="${escapeHTML(activeSearchQuery)}" style="min-width: 200px; flex: 1 1 200px; max-width: 100%;">
+              <input type="text" id="task-search" class="form-control search-input" placeholder="Search tasks..." value="${escapeHTML(activeSearchQuery)}">
               <select id="filter-category" class="form-control" style="width: auto; flex: 0 0 auto;">
                 <option value="ALL">Category: All</option>
                 <!-- Categories loaded dynamically -->
@@ -403,6 +403,7 @@ function bindEvents() {
           if (result) {
             writeTerminal(`Created category: "${trimmed}"`, 'TASK');
             renderCategoriesManager(); // refresh the list
+            document.getElementById('manage-categories-overlay').classList.remove('active');
           } else {
             showDialog('Category already exists or is invalid.');
           }
@@ -995,7 +996,11 @@ function renderCategoriesManager() {
         </button>
       </div>
     </div>
-  `).join('');
+  `).join('') + `
+    <div style="margin-top: 1rem; text-align: center;">
+      <button class="btn btn-primary" id="manage-cat-add-btn" style="width: 100%;">+ Create New Category</button>
+    </div>
+  `;
 }
 
 function renderCalendarDayView(dateStr) {

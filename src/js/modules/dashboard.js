@@ -26,11 +26,11 @@ export const DashboardView = {
 
       <!-- Row 1: Quick Actions (Full width) -->
       <section class="widget" id="widget-quick-actions" style="margin-bottom: 16px;">
-        <div class="widget-content" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; padding: 0.75rem;">
-          <button class="btn btn-primary" id="btn-quick-task" style="padding: 0.4rem 1rem; font-size: 0.85rem;">✚ Create Task</button>
-          <button class="btn btn-primary" id="btn-quick-intern" style="padding: 0.4rem 1rem; font-size: 0.85rem;">✚ Log Internship</button>
-          <button class="btn btn-primary" id="btn-quick-link" style="padding: 0.4rem 1rem; font-size: 0.85rem;">✚ Save Link</button>
-          <button class="btn btn-primary" id="btn-quick-doc" style="padding: 0.4rem 1rem; font-size: 0.85rem;">✚ Upload Document</button>
+        <div class="widget-content" style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; padding: 1.25rem;">
+          <button class="btn btn-primary" id="btn-quick-task" style="padding: 0.65rem 1.5rem; font-size: 0.95rem;">✚ Create Task</button>
+          <button class="btn btn-primary" id="btn-quick-intern" style="padding: 0.65rem 1.5rem; font-size: 0.95rem;">✚ Log Internship</button>
+          <button class="btn btn-primary" id="btn-quick-link" style="padding: 0.65rem 1.5rem; font-size: 0.95rem;">✚ Save Link</button>
+          <button class="btn btn-primary" id="btn-quick-doc" style="padding: 0.65rem 1.5rem; font-size: 0.95rem;">✚ Upload Document</button>
         </div>
       </section>
 
