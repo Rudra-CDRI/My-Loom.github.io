@@ -275,11 +275,6 @@ function bindEvents() {
       activeFilterCategory = e.target.value;
       renderTasksList();
     }
-    if (e.target.matches('.category-color-picker')) {
-      const cat = e.target.getAttribute('data-cat');
-      const color = e.target.value;
-      updateTaskCategory(cat, null, color);
-    }
     if (e.target.matches('#filter-status')) {
       activeFilterStatus = e.target.value;
       renderTasksList();
@@ -328,6 +323,47 @@ function bindEvents() {
   });
 
   document.body.addEventListener('click', async (e) => {
+    // Handle color picker toggle
+    if (e.target.closest('.btn-toggle-color-picker')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = e.target.closest('.btn-toggle-color-picker');
+      const cat = btn.getAttribute('data-cat');
+      const palette = document.getElementById('palette-' + cat);
+      
+      // Close all others first
+      document.querySelectorAll('.color-palette-popup').forEach(p => {
+        if (p.id !== 'palette-' + cat) p.style.display = 'none';
+      });
+
+      if (palette.style.display === 'none') {
+        palette.style.display = 'grid';
+      } else {
+        palette.style.display = 'none';
+      }
+      return;
+    }
+
+    // Handle color swatch selection
+    if (e.target.closest('.btn-select-color')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = e.target.closest('.btn-select-color');
+      const cat = btn.getAttribute('data-cat');
+      const color = btn.getAttribute('data-color');
+      
+      document.getElementById('palette-' + cat).style.display = 'none';
+      document.querySelector(`.btn-toggle-color-picker[data-cat="${cat}"]`).style.backgroundColor = color;
+      
+      updateTaskCategory(cat, null, color);
+      return;
+    }
+
+    // Click outside to close color palettes
+    if (!e.target.closest('.color-picker-wrapper')) {
+      document.querySelectorAll('.color-palette-popup').forEach(p => p.style.display = 'none');
+    }
+
     // Open Manage Categories modal
     if (e.target.closest('#btn-manage-categories')) {
       e.preventDefault();
@@ -884,8 +920,13 @@ function renderCategoriesManager() {
   container.innerHTML = cats.map((cat, idx) => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #141414; border-radius: 12px; margin-bottom: 10px; border: 1px solid #222;">
       <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">${escapeHTML(cat)}</span>
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <input type="color" class="category-color-picker" data-cat="${escapeHTML(cat)}" value="${getCategoryColor(cat)}" title="Change category color" style="width: 24px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 4px;">
+      <div style="display: flex; gap: 12px; align-items: center; position: relative;" class="color-picker-wrapper">
+        <button class="btn-toggle-color-picker" data-cat="${escapeHTML(cat)}" title="Change category color" style="width: 22px; height: 22px; padding: 0; border: 2px solid rgba(255,255,255,0.1); background: ${getCategoryColor(cat)}; cursor: pointer; border-radius: 50%;"></button>
+        <div class="color-palette-popup" id="palette-${escapeHTML(cat)}" style="display: none; position: absolute; right: 0; top: 32px; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 8px; z-index: 100; width: 140px; grid-template-columns: repeat(5, 1fr); gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+          ${['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#6366f1', '#f97316', '#8b5cf6', '#64748b', '#eab308'].map(color => `
+            <button class="btn-select-color" data-cat="${escapeHTML(cat)}" data-color="${color}" style="width: 20px; height: 20px; border-radius: 50%; border: none; background: ${color}; cursor: pointer;" title="${color}"></button>
+          `).join('')}
+        </div>
         <button
           class="modal-icon-btn edit-icon btn-rename-category-row"
           data-cat="${escapeHTML(cat)}"
