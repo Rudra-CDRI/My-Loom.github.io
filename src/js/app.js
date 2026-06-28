@@ -357,11 +357,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const topNavbar = document.querySelector('.top-navbar');
     
     if (isAnyModalOpen) {
-      if(appContainer) appContainer.setAttribute('inert', 'true');
       if(sidebar) sidebar.setAttribute('inert', 'true');
       if(topNavbar) topNavbar.setAttribute('inert', 'true');
     } else {
-      if(appContainer) appContainer.removeAttribute('inert');
       if(sidebar) sidebar.removeAttribute('inert');
       if(topNavbar) topNavbar.removeAttribute('inert');
     }
