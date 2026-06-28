@@ -1107,8 +1107,8 @@ body.light-mode .form-control {
 
 select option,
 .form-control option {
-  background-color: var(--bg-surface) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--surface-2);
+  color: var(--text-primary);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
@@ -1333,6 +1333,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0 !important;
   display: flex;
   align-items: center;
+  opacity: 1 !important;
+  transform: none !important;
 }
 .cards-grid.view-mode-minimal .card-footer {
   display: none; /* Hide tags in minimal mode for absolute maximum density */
@@ -1502,9 +1504,9 @@ body.light-mode .dropzone {
 
 .modal {
   position: relative;
-  width: 90%;
-  max-width: 480px;
-  max-height: 85vh;
+  width: 95%;
+  max-width: 500px;
+  max-height: 90vh;
   overflow-y: auto;
   background: var(--surface-1);
   border: 1px solid var(--border-strong);
@@ -1679,7 +1681,7 @@ body.light-mode .dropzone {
     z-index: 50;
     justify-content: space-between;
     padding: 0.75rem 1.5rem;
-    flex-wrap: wrap; /* Prevent overflow on small screens */
+    flex-wrap: nowrap; /* Keep icons on same line */
     overflow-x: auto;
   }
   
@@ -1719,6 +1721,26 @@ body.light-mode .dropzone {
   }
 
   /* Core grid layout adjustments for mobile: force 12-column widget spans */
+  .telemetry-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .dashboard-bento-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  
+  .dashboard-right-column {
+    order: -1;
+  }
+  
+  .dashboard-grid {
+    gap: 1.25rem;
+  }
+
   .checklist-widget,
   .calendar-widget,
   .intake-widget,
@@ -1737,26 +1759,6 @@ body.light-mode .dropzone {
 
   .dashboard-grid > * {
     grid-column: span 12 !important;
-  }
-
-  .telemetry-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 1.25rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .dashboard-bento-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-  
-  .dashboard-right-column {
-    order: -1;
-  }
-  
-  .dashboard-grid {
-    gap: 1.25rem;
   }
   
   .widget-content, .card, .modal-body {
@@ -1906,10 +1908,8 @@ body.light-mode .dropzone {
   border-radius: 50%;
   display: inline-block;
 }
-.pri-none {
-  background-color: var(--bg-surface);
-  color: var(--text-muted);
-}
+.pri-none::before { background-color: var(--border-color); }
+.pri-none { color: var(--text-muted); }
 .internships-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -2259,7 +2259,7 @@ body.light-mode .folder-card:hover {
    REDESIGN TYPOGRAPHY SCALES
    ------------------------------------------------------------- */
 h1, .display-text {
-  font-size: 1.75rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -2267,7 +2267,7 @@ h1, .display-text {
 }
 
 h2, .widget-title {
-  font-size: 1.15rem;
+  font-size: clamp(1rem, 2vw, 1.25rem);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text-primary);
@@ -2275,7 +2275,7 @@ h2, .widget-title {
 }
 
 h3, .modal-title {
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -2288,4 +2288,98 @@ h3, .modal-title {
   color: var(--text-secondary);
   margin-bottom: var(--space-2);
   display: block;
+}
+
+/* ==========================================================================
+   GLOBAL RESPONSIVE ARCHITECTURE & OVERRIDES
+   ========================================================================== */
+
+/* Utility for Flex/Grid blowout prevention */
+.widget, .widget-content, .card, .card-body, .table-container {
+  min-width: 0;
+}
+
+/* Base Responsive Grids & Wraps */
+.cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important;
+}
+
+/* Graceful text truncation for links and long texts */
+.link-url, .file-name, .text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Fix any table overflow */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------------------------------------------------
+   [BREAKPOINT] TABLET / LARGE MOBILE (<= 768px)
+   --------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Forms stack vertically */
+  .form-row, .form-group[style*="grid"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+}
+
+/* ---------------------------------------------------
+   [BREAKPOINT] MOBILE (<= 480px)
+   --------------------------------------------------- */
+@media (max-width: 480px) {
+  /* Modals take full screen */
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    padding: var(--space-4) !important;
+  }
+  
+  /* Widget adjustments */
+  .widget-content, .card {
+    padding: 1rem !important;
+  }
+  
+  .widget-title {
+    padding: 0.75rem 1rem !important;
+  }
+  
+  /* Fix Toolbar input wrapping */
+  .toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  .toolbar .actions-group, .toolbar .filters-group {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  
+  .toolbar input, .toolbar select, .toolbar button {
+    width: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+  }
+
+  /* Form Layouts */
+  .form-group {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  
+  /* Mobile padding reduction */
+  .view-container {
+    padding: 0.5rem !important;
+  }
 }

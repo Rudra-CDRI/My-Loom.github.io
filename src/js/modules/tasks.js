@@ -35,20 +35,20 @@ export const TasksView = {
         <!-- Main Tasks Column (Left) -->
         <div class="tasks-main-column" style="grid-column: span 8;">
           <!-- Toolbar with search, filters and trigger to add task/category -->
-          <div class="toolbar" style="flex-wrap: wrap; gap: 0.75rem;">
-            <div class="actions-group" style="flex: 1; min-width: 280px; flex-wrap: wrap; gap: 0.5rem;">
-              <input type="text" id="task-search" class="form-control search-input" placeholder="Search tasks..." value="${escapeHTML(activeSearchQuery)}">
-              <select id="filter-category" class="form-control" style="width: auto;">
+          <div class="toolbar" style="flex-wrap: wrap; gap: 1rem;">
+            <div class="filters-group" style="flex: 1 1 auto; flex-wrap: wrap; gap: 0.75rem; display: flex;">
+              <input type="text" id="task-search" class="form-control search-input" placeholder="Search tasks..." value="${escapeHTML(activeSearchQuery)}" style="min-width: 200px; flex: 1 1 200px; max-width: 100%;">
+              <select id="filter-category" class="form-control" style="width: auto; flex: 0 0 auto;">
                 <option value="ALL">Category: All</option>
                 <!-- Categories loaded dynamically -->
               </select>
-              <select id="filter-status" class="form-control" style="width: auto;">
+              <select id="filter-status" class="form-control" style="width: auto; flex: 0 0 auto;">
                 <option value="ALL" ${activeFilterStatus === 'ALL' ? 'selected' : ''}>Status: All</option>
                 <option value="Todo" ${activeFilterStatus === 'Todo' ? 'selected' : ''}>Status: Todo</option>
                 <option value="In Progress" ${activeFilterStatus === 'In Progress' ? 'selected' : ''}>Status: In Progress</option>
                 <option value="Done" ${activeFilterStatus === 'Done' ? 'selected' : ''}>Status: Done</option>
               </select>
-              <select id="filter-priority" class="form-control" style="width: auto;">
+              <select id="filter-priority" class="form-control" style="width: auto; flex: 0 0 auto;">
                 <option value="ALL" ${activeFilterPriority === 'ALL' ? 'selected' : ''}>Priority: All</option>
                 <option value="HIGH" ${activeFilterPriority === 'HIGH' ? 'selected' : ''}>Priority: High</option>
                 <option value="MED" ${activeFilterPriority === 'MED' ? 'selected' : ''}>Priority: Med</option>
@@ -56,7 +56,7 @@ export const TasksView = {
                 <option value="NONE" ${activeFilterPriority === 'NONE' ? 'selected' : ''}>Priority: None</option>
               </select>
             </div>
-            <div class="actions-group" style="margin-left: auto;">
+            <div class="actions-group" style="flex: 0 0 auto; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end;">
               <button class="btn" id="btn-manage-categories" title="View, rename or delete categories">⚙ Manage</button>
               <button class="btn" id="btn-add-category" title="Create a custom task category">+ Category</button>
               <button class="btn btn-primary" id="btn-add-task">+ Initialize Task</button>
