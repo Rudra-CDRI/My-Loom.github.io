@@ -584,13 +584,34 @@ function getLinkThumbnailHTML(url) {
         </div>
       `;
     } else {
-      // 3. Generic Links: Website screenshot via WordPress mshots
-      const encodedUrl = encodeURIComponent(url);
-      return `
-        <div class="link-thumbnail-container">
-          <img class="link-thumbnail-img" src="https://s.wordpress.com/mshots/v1/${encodedUrl}?w=600" alt="Site Preview">
-        </div>
-      `;
+      // 3. Generic Links: Smart Heuristic System
+      const domain = urlObj.hostname.toLowerCase();
+      
+      // Known domains/patterns that result in ugly login page screenshots
+      const isLoginOrAppPage = 
+        domain.includes('login') || 
+        domain.includes('signin') || 
+        domain.includes('auth') || 
+        (domain.includes('google.com') && !domain.includes('youtube.com')) || // notebooklm, docs, etc.
+        domain.includes('eims.iitbbs.ac.in') ||
+        domain.includes('autozap');
+
+      if (isLoginOrAppPage) {
+        // Fallback to crisp HD Logo centered on dark gradient
+        return `
+          <div class="link-thumbnail-container link-logo-bg">
+            <img class="link-logo-img" src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(url)}&size=128" alt="${domain}">
+          </div>
+        `;
+      } else {
+        // Use full website screenshot via WordPress mshots for good public sites
+        const encodedUrl = encodeURIComponent(url);
+        return `
+          <div class="link-thumbnail-container">
+            <img class="link-thumbnail-img" src="https://s.wordpress.com/mshots/v1/${encodedUrl}?w=600" alt="Site Preview">
+          </div>
+        `;
+      }
     }
   } catch (err) {
     return `
