@@ -2300,7 +2300,7 @@ h3, .modal-title {
 }
 
 /* Base Responsive Grids & Wraps */
-.cards-grid {
+.cards-grid:not(.view-mode-list):not(.view-mode-minimal) {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important;
 }
 
