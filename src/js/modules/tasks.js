@@ -253,8 +253,8 @@ export const TasksView = {
       storeUnsubscribe = null;
     }
     containerRef = null;
-    // CRITICAL: reset isDelegated so bindEvents() re-attaches on next render
-    isDelegated = false;
+    // We intentionally do NOT reset isDelegated here because event listeners
+    // are attached to document.body and should only be attached once.
   }
 };
 
